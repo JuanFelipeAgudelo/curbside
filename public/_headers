@@ -1,0 +1,14 @@
+# What every page of the app is served with: Cloudflare reads this file from
+# the static assets (wrangler.curbside.toml) and never serves it as a page.
+#
+# The policy lets only this origin's script files run, and the pages' own
+# inline scripts by their hash, so a value that slips into a screen unescaped
+# cannot run as script. An inline <script> that changes needs its new hash
+# here or it will not run: worker/src/headers.test.ts fails and prints the
+# line to paste. Python's http.server (local dev) ignores this file.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-pJWhj0EXRu08+QIx8sDbaZSswyoh/SOYilZOjd0iSjo=' 'sha256-/EFProJ1RBNhfSdahJl+9U1SgzqZF2A/tkkNVOeEeeY=' 'sha256-S2V+KyXPZj490SQfeVH3MwpEnhb6mCjX0qlAmzwfiWY=' 'sha256-C1z/+PeAO8ctH/800PCy7SEZ5fQK6pDHYA2g34eRF8w='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self'; connect-src 'self' https://flightwatch-worker.juanfe02agu.workers.dev; frame-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'; manifest-src 'self'; worker-src 'self'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()

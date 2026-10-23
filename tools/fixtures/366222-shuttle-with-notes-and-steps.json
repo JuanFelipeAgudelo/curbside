@@ -1,0 +1,47 @@
+{
+ "number": "366222",
+ "start": "2026-08-25 05:50",
+ "end": "2026-08-25 07:45",
+ "driver": "Reyes, Mara",
+ "vehicle": "Branch (72566) 2024 Mercedes Benz",
+ "parking": "FKL-NBD-014",
+ "originCode": "FKL",
+ "driverNotes": "Transporting workers from NCA&NCB to WRK\nStage at NCB by 5:50am. Depart at 5:55am. Pick up at NCA Diner. Depart at 6:00am.\nDrop off at WRK Main Lobby.\nPlease submit passenger count to the scheduling inbox - redacted@example.invalid",
+ "assistants": [],
+ "steps": [
+  {
+   "code": "NCB",
+   "place": "Newburgh Center B",
+   "address": "15 Crossroads Court Newburgh, NY 12550",
+   "eta": "5:50 AM",
+   "etd": "5:55 AM",
+   "date": "2026-08-25",
+   "etaDate": "2026-08-25",
+   "actions": []
+  },
+  {
+   "code": "NCA",
+   "place": "Newburgh Center A",
+   "address": "1292 NY-300 Newburgh, NY 12550",
+   "eta": "6:00 AM",
+   "etd": "6:00 AM",
+   "date": "2026-08-25",
+   "etaDate": "2026-08-25",
+   "actions": []
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "6:45 AM",
+   "etd": "7:45 AM",
+   "date": "2026-08-25",
+   "etaDate": "2026-08-25",
+   "actions": []
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-08-24 17:06",
+ "source": "366222-shuttle-with-notes-and-steps.txt"
+}

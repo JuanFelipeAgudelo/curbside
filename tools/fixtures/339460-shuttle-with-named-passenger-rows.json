@@ -1,0 +1,322 @@
+{
+ "number": "339460",
+ "start": "2026-05-26 08:00",
+ "end": "2026-05-26 09:50",
+ "driver": "Reyes, Mara",
+ "vehicle": "Branch (72492) 2023 Mercedes Benz",
+ "parking": "WRK-RPG-BSMNT-073",
+ "originCode": "WRK",
+ "driverNotes": "Please follow times:\n7:45a Load Mail for ALL Sites check cabinets for Mail & WRK Lobby for Rushes\n7:50a Call Dispatch & Load Passengers\n8:00a Depart WRK Lobby for HUB\n8:15a Depart TUX Lobby (only if passengers)\n--\n8:50a Exchange Mail check HUB Lobby for Rushes\n8:55a Call Dispatch & Load Passengers\n9:00a Depart from HUB for Home\n9:45a Drop-Off TUX Passengers\n9:55a Drop-Off WRK Passengers\n10:00a Put Mail in INCOMING CABINET Bring Rushes labeled \u201cLobby\u201d to WRK Lobby\n10:00a Wash & Fuel",
+ "assistants": [],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": null,
+   "etd": "8:00 AM",
+   "date": "2026-05-26",
+   "etaDate": "2026-05-26",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Mendez, Pia",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": "+00 00-0000-0000",
+       "note": "family member of Diaz, Ana-maria, approved to stay as an overnight guest at Warwick Bethel",
+       "bags": 0,
+       "route": "Warwick > Wallkill                                  0"
+      },
+      {
+       "name": "Reyes, Faye & Vera",
+       "pax": 2,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": null,
+       "route": "Warwick > Patterson"
+      },
+      {
+       "name": "Jonas, Ana",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": "+00 00-0000-0000",
+       "bags": 1,
+       "route": "Warwick > Wallkill                                  1"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "TUX",
+   "place": "Tuxedo Property",
+   "address": "1422 Long Meadow Road Tuxedo Park , NY 10987",
+   "eta": "8:10 AM",
+   "etd": "8:10 AM",
+   "date": "2026-05-26",
+   "etaDate": "2026-05-26",
+   "actions": []
+  },
+  {
+   "code": "NCB",
+   "place": "Newburgh Center B",
+   "address": "15 Crossroads Court Newburgh, NY 12550",
+   "eta": "8:45 AM",
+   "etd": "9:00 AM",
+   "date": "2026-05-26",
+   "etaDate": "2026-05-26",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "NCB   Main Lobby - 15 Crossroads Ct, Newburgh, NY",
+     "entities": [
+      {
+       "name": "Mendez, Pia",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": "+00 00-0000-0000",
+       "note": "family member of Diaz, Ana-maria, approved to stay as an overnight guest at Warwick Bethel",
+       "bags": 0,
+       "route": "Warwick > Wallkill                                  0"
+      },
+      {
+       "name": "Reyes, Faye & Vera",
+       "pax": 2,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": null,
+       "route": "Warwick > Patterson"
+      },
+      {
+       "name": "Jonas, Ana",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": "+00 00-0000-0000",
+       "bags": 1,
+       "route": "Warwick > Wallkill                                  1"
+      }
+     ]
+    },
+    {
+     "verb": "Pickup",
+     "where": "NCB   Main Lobby - 15 Crossroads Ct, Newburgh, NY",
+     "entities": [
+      {
+       "name": "Jonas, Gil",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": null,
+       "note": "Attending Writing Department orientation in Warwick.",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Diaz, Vera",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": null,
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Lucas, Kira, Leon & Pia",
+       "pax": 3,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+00 0000 000000",
+       "note": "Group from Art Department attending MEPS Orientation in Warwick.",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Brennan, Vera",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": null,
+       "note": "Attending Writing Department orientation in Warwick.",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Grant, Omar & Rosa",
+       "pax": 2,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Hale, Ben",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": null,
+       "note": "Attending Writing Department orientation in Warwick.",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Warner, Theo",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "TUX",
+   "place": "Tuxedo Property",
+   "address": "1422 Long Meadow Road Tuxedo Park , NY 10987",
+   "eta": "9:40 AM",
+   "etd": "9:40 AM",
+   "date": "2026-05-26",
+   "etaDate": "2026-05-26",
+   "actions": []
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "9:50 AM",
+   "etd": null,
+   "date": "2026-05-26",
+   "etaDate": "2026-05-26",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Jonas, Gil",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": null,
+       "note": "Attending Writing Department orientation in Warwick.",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Diaz, Vera",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": null,
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Lucas, Kira, Leon & Pia",
+       "pax": 3,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+00 0000 000000",
+       "note": "Group from Art Department attending MEPS Orientation in Warwick.",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Brennan, Vera",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": null,
+       "note": "Attending Writing Department orientation in Warwick.",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Grant, Omar & Rosa",
+       "pax": 2,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Hale, Ben",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": null,
+       "note": "Attending Writing Department orientation in Warwick.",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      },
+      {
+       "name": "Warner, Theo",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Patterson > Warwick                                 0"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-05-25 17:22",
+ "source": "339460-shuttle-with-named-passenger-rows.txt"
+}

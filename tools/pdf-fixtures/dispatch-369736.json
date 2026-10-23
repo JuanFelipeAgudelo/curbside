@@ -1,0 +1,129 @@
+{
+ "number": "369736",
+ "start": "2026-08-31 21:30",
+ "end": "2026-09-01 03:00",
+ "driver": "Reyes, Mara",
+ "vehicle": "Branch (72398) 2020 Toyota Sienna (7 Seats)",
+ "parking": "FKL-NBD-003",
+ "originCode": "FKL",
+ "driverNotes": "LGA pickup. Take arriving passengers to WKL",
+ "assistants": [],
+ "steps": [
+  {
+   "code": "FKL",
+   "place": "Fishkill",
+   "address": "33 Vaughn Way",
+   "eta": null,
+   "etd": "9:30 PM",
+   "date": "2026-08-31",
+   "etaDate": "2026-08-31",
+   "actions": []
+  },
+  {
+   "code": "LGA",
+   "place": "LGA LaGuardia",
+   "address": "Grand Central Parkway Flushing, NY 11371",
+   "eta": "11:00 PM",
+   "etd": "12:00 AM",
+   "date": "2026-09-01",
+   "etaDate": "2026-08-31",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "Baggage Claim",
+     "entities": [
+      {
+       "name": "Jonas, Ana",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "LGA LaGuardia",
+       "destination": "Wallkill",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "flightNumber": "UA1503",
+       "scheduledText": "11:15 PM Houston, Texas (IAH)",
+       "flightDate": "2026-08-31"
+      },
+      {
+       "name": "Owens, Dana",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "LGA LaGuardia",
+       "destination": "Wallkill",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "flightNumber": "WN748",
+       "scheduledText": "11:20 PM Nashville TN",
+       "flightDate": "2026-08-31"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "WKL",
+   "place": "Wallkill",
+   "address": "900 Red Mills Rd.",
+   "eta": "2:15 AM",
+   "etd": "2:15 AM",
+   "date": "2026-09-01",
+   "etaDate": "2026-09-01",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "A Front",
+     "entities": [
+      {
+       "name": "Owens, Dana",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "LGA LaGuardia",
+       "destination": "Wallkill",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "flightNumber": "WN748",
+       "scheduledText": "11:20 PM Nashville TN",
+       "flightDate": "2026-08-31"
+      }
+     ]
+    },
+    {
+     "verb": "Drop-Off",
+     "where": "B Carport",
+     "entities": [
+      {
+       "name": "Jonas, Ana",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "LGA LaGuardia",
+       "destination": "Wallkill",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "flightNumber": "UA1503",
+       "scheduledText": "11:15 PM Houston, Texas (IAH)",
+       "flightDate": "2026-08-31"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "FKL",
+   "place": "Fishkill",
+   "address": "33 Vaughn Way",
+   "eta": "3:00 AM",
+   "etd": null,
+   "date": "2026-09-01",
+   "etaDate": "2026-09-01",
+   "actions": []
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-08-31 19:18",
+ "source": "dispatch-369736.pdf"
+}

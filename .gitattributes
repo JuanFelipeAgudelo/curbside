@@ -1,0 +1,3 @@
+# Test PDFs are bytes: never convert their line endings.
+*.pdf binary
+public/_headers text eol=lf

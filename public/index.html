@@ -1,0 +1,2172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Curbside</title>
+  <meta name="apple-mobile-web-app-title" content="Curbside" />
+  <meta name="application-name" content="Curbside" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#0E1B30" />
+  <script>
+    // The one theme rule: app.js's resolveTheme() calls it too. Auto follows
+    // the phone's own light or dark mode (the owner, v62.2: some drivers like
+    // night in the day and the other way round); dark from 11p to 5a is the
+    // dimmer late theme. `dark` is the phone's answer, passed in for tests.
+    function curbsideTheme(mode, d, dark) {
+      if (mode === "day" || mode === "night") return mode;
+      if (dark === undefined) {
+        try { dark = window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { dark = true; }
+      }
+      if (!dark) return "day";
+      var h = d.getHours() + d.getMinutes() / 60;
+      return h >= 23 || h < 5 ? "late" : "night";
+    }
+    // The theme is set before the first paint, so a 2 AM launch never flashes
+    // a lighter page.
+    (function () {
+      var mode = null;
+      try { mode = localStorage.getItem("fw_theme"); } catch (e) { /* private mode */ }
+      var t = curbsideTheme(mode, new Date());
+      if (t !== "night") document.documentElement.setAttribute("data-theme", t);
+      document.querySelector('meta[name="theme-color"]').setAttribute("content",
+        t === "day" ? "#EFECE4" : t === "late" ? "#070B14" : "#0E1B30");
+    })();
+    // M12, the launch splash: at most once a day, and the day turns at 4 AM,
+    // so a 2 AM start is still yesterday's. Decided here, before the first
+    // paint, so the app never shows before it. A resume from the background
+    // never runs this. Not in the motion preview, not with reduce motion;
+    // ?splash forces it (for testing) without spending the day's.
+    (function () {
+      var q = new URLSearchParams(location.search), force = q.has("splash");
+      if (!force && (q.has("preview") || matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+      var d = new Date(Date.now() - 4 * 3600000);
+      var day = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+      try {
+        if (!force && localStorage.getItem("fw_splash_day") === day) return;
+        if (!force) localStorage.setItem("fw_splash_day", day);
+      } catch (e) { return; } // no memory of today: no splash, rather than one every launch
+      document.documentElement.classList.add("splash");
+    })();
+  </script>
+  <!-- "default", not black-translucent: iOS 26 lays a Liquid Glass blur ~40pt
+       past a translucent status bar, over the chrome, and no CSS turns it off
+       (a fixed strip and a sticky header both failed on the phone). An opaque bar
+       tinted from theme-color, which the theme code rewrites, leaves nothing
+       under it to blur. iOS reads this once, when the app is added to the Home
+       Screen: a change here needs a reinstall. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ============ TOKENS — night (default) ============
+       One meaning per colour (the owner, 2026-09-26): brass = you are here,
+       blue = a time moved, red = a problem, green = done / dial, violet = GB.
+       Everything else is ink. */
+    :root {
+      color-scheme: dark;
+      --page:            #0E1B30;
+      --panel:           #16294A;
+      --panel-raised:    #1C3459;
+      --card:            #142545;
+      --alert-bg:        rgba(255, 122, 98, 0.12);
+      --warn-strip:      #251E14;
+      --hairline:        #1E3252;
+      --hairline-strong: #2E4571;
+      --border-dashed:   #3B517A;
+
+      --ink:             #F4F1EA;
+      --ink-2:           #8FA1C0;
+      --ink-warn:        #D8C9A8;
+      --ink-struck:      #C0A08E;
+
+      --brass:           #E8A33D;   /* here, and nothing else */
+      --brass-fill:      #E8A33D;
+      --moved:           #7CC7F2;
+      --gb:              #C4A3F5;
+      --gb-ink:          #1A1206;
+
+      /* RIGHT NOW: an outline at night, a fill by day, dimmer after 11p. */
+      --band-bg:         rgba(232, 163, 61, 0.10);
+      --band-border:     #E8A33D;
+      --band-label:      #E8A33D;
+      --band-ink:        #F4F1EA;
+      --band-ink-2:      #8FA1C0;
+
+      --ok:              #4FC38A;
+      --ok-bg:           #12312A;
+      --alert-text:      #FF7A62;
+
+      --mono-weight:     600;  /* steps to 700 in daylight */
+      /* Default so sheets (rendered outside .app) still get a side gutter. */
+      --gutter:          16px;
+    }
+
+    /* ============ TOKENS — daylight ============ */
+    [data-theme="day"] {
+      color-scheme: light;
+      --page:            #EFECE4;
+      --panel:           #FFFFFF;
+      --panel-raised:    #F6F3EB;
+      --card:            #FFFFFF;
+      --alert-bg:        #FBE4DD;
+      --warn-strip:      #FBF3E3;
+      --hairline:        #DBD6C9;
+      --hairline-strong: #C3BCAA;
+      --border-dashed:   #B9B2A2;
+
+      --ink:             #101E36;
+      --ink-2:           #56647C;
+      --ink-warn:        #6B4E17;
+      --ink-struck:      #76604C;   /* 5.0:1; #8A7358 was 4.49 */
+
+      --brass:           #8A5A06;   /* text — #E8A33D is only ~2.2:1 on light */
+      --brass-fill:      #E8A33D;   /* fills keep the brand brass with ink labels */
+      --moved:           #0B6694;
+      --gb:              #6A3FB0;
+      --gb-ink:          #FFFFFF;
+
+      --band-bg:         #E8A33D;
+      --band-border:     #E8A33D;
+      --band-label:      #101E36;
+      --band-ink:        #101E36;
+      --band-ink-2:      #3A2E17;
+
+      --ok:              #1A6E47;   /* 5.3:1; #1E7A4F was 4.50 */
+      --ok-bg:           #E4F2EA;
+      --alert-text:      #B4321C;
+
+      --mono-weight:     700;
+    }
+
+    /* ============ TOKENS — late (Auto, 11p to 5a) ============
+       Near-black, dimmer ink, the band an outline only: the glare at 2 AM
+       was the brass fill and big white type, not the navy. */
+    [data-theme="late"] {
+      --page:            #070B14;
+      --panel:           #0D1422;
+      --panel-raised:    #121B2D;
+      --card:            #0D1422;
+      --alert-bg:        rgba(224, 99, 77, 0.10);
+      --warn-strip:      #15120C;
+      --hairline:        #162036;
+      --hairline-strong: #22304A;
+      --border-dashed:   #2E3D5A;
+
+      --ink:             #CFC8BA;
+      --ink-2:           #7D8AA0;
+      --ink-warn:        #BFB294;
+      --ink-struck:      #9C8878;
+
+      --brass:           #C98A2E;
+      --brass-fill:      #C98A2E;
+      --moved:           #5FA9D0;
+      --gb:              #A68AD6;
+      --gb-ink:          #070B14;
+
+      --band-bg:         transparent;
+      --band-border:     #C98A2E;
+      --band-label:      #C98A2E;
+      --band-ink:        #CFC8BA;
+      --band-ink-2:      #7D8AA0;
+
+      --ok:              #3FA774;
+      --ok-bg:           #0C2119;
+      --alert-text:      #E0634D;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overscroll-behavior-y: contain;
+      overflow-x: hidden;
+      touch-action: pan-y;
+      width: 100%;
+    }
+
+    /* A class that sets display must not un-hide an element: .edit-times did,
+       and a phone correction showed the last stop's time fields. */
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      /* 0 on an installed iPhone app (the status bar is opaque, see the meta);
+         kept for the notch in landscape and any browser that covers the top. */
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ============ CHROME ============ */
+    .chrome {
+      height: 43px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 var(--gutter);
+      border-bottom: 1px solid var(--hairline);
+    }
+    /* The wordmark: lowercase, after a small brass curb -- the icon's mark. */
+    .wordmark {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink);
+    }
+    .wordmark::before {
+      content: ""; width: 16px; height: 4px; border-radius: 2px; background: var(--brass-fill);
+    }
+    .chrome .spacer { flex: 1; }
+    #clock {
+      font-family: "IBM Plex Mono", monospace; font-size: 14px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums;
+    }
+    .icon-btn {
+      background: none; border: 0; padding: 0; cursor: pointer;
+      display: inline-flex; align-items: center; color: var(--ink-2);
+    }
+    .icon-btn[hidden] { display: none; }
+    .icon-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .ico { width: 17px; height: 17px; stroke-width: 1.75; fill: none; stroke: currentColor;
+           stroke-linecap: round; stroke-linejoin: round; }
+    .ico-sm { width: 11px; height: 11px; stroke-width: 2; }
+    .offline-flag {
+      display: inline-flex; align-items: center; gap: 7px; color: var(--ink-2);
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    }
+    .offline-flag[hidden] { display: none; }
+    .offline-flag svg { width: 16px; height: 16px; }
+    /* A newer version has taken over; the page still runs the old files. Ink,
+       like OFFLINE: news about the app, not about the run. Tap = reload. */
+    .update-flag { gap: 7px; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+    .update-flag svg { width: 16px; height: 16px; }
+    /* Both words don't fit a 375px phone: with OFFLINE up, UPDATE is its icon. */
+    .chrome:has(#offline-flag:not([hidden])) .update-word { display: none; }
+
+    /* ============ SHARED TYPE ROLES ============ */
+    /* Caps labels are the sans at 11px, the floor. Mono is for numbers only. */
+    .eyebrow {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-2);
+    }
+
+    /* ============ STATES ============ */
+    .warn-strip {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: var(--warn-strip); border-bottom: 1px solid var(--hairline);
+      padding: 12px var(--gutter);
+      font-size: 12px; line-height: 1.55; color: var(--ink-warn);
+    }
+    .warn-strip svg { color: var(--ink-warn); flex: none; margin-top: 1px; width: 15px; height: 15px;
+                      stroke-width: 2; fill: none; stroke: currentColor;
+                      stroke-linecap: round; stroke-linejoin: round; }
+    .warn-strip .mono { color: var(--ink); }
+
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+      padding: 60px 40px; text-align: center;
+    }
+    .empty-state svg {
+      width: 34px; height: 34px; color: var(--hairline-strong); stroke-width: 1.25;
+      fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .empty-state h2 { margin: 0; font-size: 19px; font-weight: 600; color: var(--ink); }
+    .empty-state p {
+      margin: 0; font-size: 13px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty;
+    }
+    .empty-state .submit {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px; margin-top: 4px;
+    }
+    .empty-state .submit .ico { width: 16px; height: 16px; }
+    .empty-state .empty-hint { font-size: 12.5px; line-height: 1.5; margin-top: -4px; }
+
+    /* ============ IMPORT ============
+       Dispatch's PDF, read on the device. The icon's centre is 44px from
+       Settings' (a 17px icon, the 12px gap, this margin), so each keeps its
+       whole target. */
+    .import-btn { margin-right: 15px; }
+    .offscreen {
+      position: absolute; width: 1px; height: 1px; overflow: hidden; white-space: nowrap;
+      clip-path: inset(50%); opacity: 0; pointer-events: none;
+    }
+    /* What the last import did: one line per file, until OK. A run's line opens it. */
+    .imports {
+      background: var(--panel); border: 1px solid var(--hairline-strong);
+      border-radius: 12px; overflow: hidden; flex: none;
+    }
+    .imports-head { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; }
+    .imports-head .spacer { flex: 1; }
+    .imports-head .when {
+      font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-2);
+    }
+    .iline {
+      display: flex; gap: 11px; align-items: flex-start; width: 100%;
+      min-height: 52px; padding: 10px 14px; margin: 0;
+      border: 0; border-top: 1px solid var(--hairline); background: none;
+      text-align: left; font: inherit; color: var(--ink);
+    }
+    button.iline { cursor: pointer; }
+    button.iline:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+    .iline > .ico { width: 15px; height: 15px; margin-top: 2px; color: var(--ink-2); }
+    .ibody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .itop { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+    .inum {
+      font-family: "IBM Plex Mono", monospace; font-size: 15px; font-weight: 600;
+      letter-spacing: 0.06em; font-variant-numeric: tabular-nums;
+    }
+    .iwhat { font-size: 14px; font-weight: 600; }
+    .iline.bad .iwhat { color: var(--alert-text); }
+    .idetail { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); overflow-wrap: anywhere; }
+    .idetail .needs { color: var(--alert-text); }
+    /* Green check: saved. Hollow: not sent yet, as an edit's hollow dot. A
+       dash: nothing changed. Red: nothing imported. */
+    .iglyph {
+      flex: none; width: 19px; height: 19px; border-radius: 50%; margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid var(--hairline-strong);
+    }
+    .iline.done .iglyph { background: var(--ok); border-color: var(--ok); color: var(--page); }
+    .iline.done .iglyph .ico { width: 12px; height: 12px; stroke-width: 3; }
+    .iline.wait .iglyph { border-color: var(--ink); }
+    .iline.same .iglyph::after { content: ""; width: 7px; height: 1.5px; background: var(--ink-2); }
+    .iline.bad .iglyph {
+      border-color: var(--alert-text); color: var(--alert-text);
+      font-size: 11px; font-weight: 700; line-height: 1;
+    }
+    /* The laptop: a PDF dropped anywhere. The veil never takes the events, so
+       the page's own drag enter/leave count stays true. */
+    .drop-veil { position: fixed; inset: 0; z-index: 60; display: flex; padding: 24px; pointer-events: none; }
+    .drop-veil::before { content: ""; position: absolute; inset: 0; background: var(--page); opacity: 0.9; }
+    .drop-frame {
+      position: relative; flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 14px; padding: 24px; text-align: center;
+      border: 2px dashed var(--ink-2); border-radius: 18px;
+    }
+    .drop-frame .ico { width: 40px; height: 40px; stroke-width: 1.5; color: var(--ink); }
+    .drop-frame b { font-size: 22px; font-weight: 600; }
+    .drop-frame span { font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+
+    /* ============ SHEETS ============ */
+    .sheet {
+      position: fixed; inset: 0; z-index: 40;
+      background: var(--page);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    .sheet[hidden] { display: none; }
+    .sheet-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: env(safe-area-inset-top, 0px) var(--gutter) 0;
+      height: calc(52px + env(safe-area-inset-top, 0px)); flex: none;
+      border-bottom: 1px solid var(--hairline);
+      position: sticky; top: 0; background: var(--page); z-index: 1;
+    }
+    .sheet-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .sheet-head .spacer { flex: 1; }
+    .text-btn {
+      background: none; border: 0; cursor: pointer; padding: 0;
+      font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--ink-2);
+    }
+    .sheet-body {
+      padding: 20px var(--gutter) calc(44px + env(safe-area-inset-bottom, 0px));
+      display: flex; flex-direction: column; gap: 14px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field label {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+    }
+    .field .opt { font-weight: 500; letter-spacing: 0.04em; text-transform: none; }
+    .input {
+      width: 100%; background: var(--panel); border: 1px solid var(--hairline);
+      border-radius: 10px; padding: 12px 14px; color: var(--ink);
+      /* 16px, not less: iOS Safari zooms into any focused field under 16px and
+         never zooms back out. */
+      font-family: "Instrument Sans", system-ui, sans-serif; font-size: 16px;
+    }
+    .input::placeholder { color: var(--ink-2); }
+    .input:focus { outline: none; border-color: var(--ink-2); }
+    .input.mono-input {
+      font-family: "IBM Plex Mono", monospace; font-size: 22px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .input[type="date"] { color-scheme: dark; }
+    [data-theme="day"] .input[type="date"] { color-scheme: light; }
+    .field-error { font-size: 12.5px; color: var(--alert-text); min-height: 1em; }
+    /* First-run panel. Creating a list is deliberate here, so the recovery
+       path (entering an existing code) is the primary action and starting
+       fresh is the quieter one. */
+    .welcome {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 22px 18px 26px; max-width: 420px; margin: 0 auto;
+    }
+    .welcome h2 {
+      margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em;
+      color: var(--ink); text-wrap: balance;
+    }
+    .welcome-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+    .welcome .submit { margin-top: 6px; }
+    .welcome-new { align-self: center; margin-top: 2px; }
+
+    .submit {
+      height: 48px; width: 100%; border: 0; border-radius: 10px;
+      background: var(--ink); color: var(--page);
+      font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.14em;
+      cursor: pointer; margin-top: 4px;
+    }
+    .submit:disabled { opacity: 0.45; cursor: default; }
+
+    /* Settings is a short menu (the owner, 2026-10-01): cards of rows, each
+       opening its own page, with what is set now said under its name. */
+    .menu-body { gap: 0; padding-top: 16px; }
+    .menu {
+      display: flex; flex-direction: column;
+      background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; overflow: hidden;
+    }
+    .menu-eyebrow { padding: 22px 4px 8px; }
+    .menu-row {
+      display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px;
+      padding: 10px 14px; background: none; border: 0; border-top: 1px solid var(--hairline);
+      font: inherit; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer;
+    }
+    .menu-row:first-child { border-top: 0; }
+    .menu-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+    .menu-row:active { background: var(--panel-raised); }
+    .menu-static { cursor: default; }
+    .menu-static:active { background: none; }
+    .menu-ico {
+      flex: none; width: 34px; height: 34px; border-radius: 9px; background: var(--panel-raised);
+      display: flex; align-items: center; justify-content: center; color: var(--ink);
+    }
+    .menu-ico .ico { width: 17px; height: 17px; }
+    .menu-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .menu-title { font-size: 15px; font-weight: 600; }
+    .menu-sub {
+      font-size: 12.5px; color: var(--ink-2);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .menu-row .chev { flex: none; width: 16px; height: 16px; color: var(--ink-2); }
+    /* Something of another driver's is waiting for the keeper. */
+    .menu-badge {
+      flex: none; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 7px;
+      border-radius: 5px; border: 1px solid var(--ink); color: var(--ink); white-space: nowrap;
+    }
+    .menu-seg { flex: none; }
+    .menu-seg button { flex: none; padding: 10px 11px; }
+    .menu-help { padding: 8px 4px 0; }
+    /* A row's own menu (v68). What takes a row away stands apart, last; a
+       row answered in place (the greeting) stacks its buttons under its words. */
+    .menu-apart { margin-top: 14px; }
+    .menu-stack { flex-wrap: wrap; row-gap: 10px; }
+    .menu-stack .seg { flex: 1 1 100%; }
+    #row-menu-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #row-menu-note { padding-top: 14px; }
+    .menu-foot {
+      margin: 26px 0 0; text-align: center; font-size: 12.5px; color: var(--ink-2);
+    }
+    .menu-foot .version-val { font-family: "IBM Plex Mono", monospace; font-weight: var(--mono-weight); }
+    .set-row.first { border-top: 0; padding-top: 0; }
+    /* A place or airline every driver gets, and one a driver suggested. */
+    .place-row .ptag { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2); }
+    .place-row.suggested { flex-wrap: wrap; }
+    .sugg-acts { flex-basis: 100%; display: flex; gap: 8px; padding-left: 0; }
+    .sugg-acts .mini-btn { min-height: 40px; padding: 0 14px; }
+    .sugg-acts .mini-btn.go { background: var(--ink); border-color: var(--ink); color: var(--page); }
+    /* The day of the run: why the chat opens empty. */
+    .daynote { margin: 0 0 4px; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+
+    .set-group { display: flex; flex-direction: column; }
+    /* A block: as a span inside a plain div (the keeper's rows, FOR EVERY
+       DRIVER) its padding took no room and it sat on the line above. */
+    .set-eyebrow { display: block; padding: 20px 0 8px; }
+    .set-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 0; border-top: 1px solid var(--hairline);
+      font-size: 13px; color: var(--ink);
+    }
+    .set-row .spacer { flex: 1; }
+    .set-row .lbl { color: var(--ink-2); font-size: 12.5px; }
+    .set-value {
+      font-family: "IBM Plex Mono", monospace; font-size: 15px; font-weight: 600;
+      color: var(--ink); font-variant-numeric: tabular-nums;
+    }
+    .set-value.code { letter-spacing: 0.1em; font-size: 17px; }
+    /* The topic is a 33-character secret: its own line, under its buttons. */
+    .topic-row { padding-bottom: 6px; }
+    .topic-row .mini-btn { text-decoration: none; }
+    .set-value.topic-val { font-size: 12px; font-weight: 500; color: var(--ink-2);
+      padding-bottom: 13px; overflow-wrap: anywhere; }
+    .test-say { padding-bottom: 6px; }
+    .test-say:empty { display: none; }
+    .set-value.checks-left { font-size: 13px; font-weight: 500; white-space: nowrap; }
+    .set-value.checks-left.low { color: var(--alert-text); }
+    /* Alerts on this phone: green when on (done), red when the phone blocks
+       them or they stopped (a problem), plain when simply off. */
+    .set-value.push-state { font-size: 13px; letter-spacing: 0.06em; white-space: nowrap; }
+    .set-value.push-state.on { color: var(--ok); }
+    .set-value.push-state.bad { color: var(--alert-text); }
+    #push-toggle { min-height: 36px; padding: 0 14px; color: var(--ink); }
+    /* MESSAGES: one row per kind of trip, its first words under it. */
+    .msg-row .msg-kind { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+    .msg-row .msg-tags { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink-2); margin-left: 4px; }
+    .msg-row .msg-first { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .input.message-text { resize: vertical; min-height: 250px; line-height: 1.45; }
+    .set-two { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; }
+    .set-sub { font-size: 12.5px; color: var(--ink-2); }
+
+    /* ---------- the route in Maps, and places ---------- */
+    .routebar { display: flex; flex-direction: column; }
+    .routebtn {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      background: var(--panel); border: 1px solid var(--hairline-strong); border-radius: 12px 12px 0 0;
+      min-height: 52px; padding: 10px 14px; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink);
+    }
+    .routebtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .routebtn .ico { width: 16px; height: 16px; flex: none; }
+    .routebtn .ico-sm { width: 14px; height: 14px; color: var(--ink-2); }
+    .routebtn .spacer { flex: 1; }
+    .routebtn .rcount { color: var(--ink-2); }
+    .rpath {
+      margin: 0; padding: 9px 14px 11px; border: 1px solid var(--hairline-strong); border-top: 0;
+      border-radius: 0 0 12px 12px; background: var(--panel-raised);
+      font-size: 13px; line-height: 1.45; color: var(--ink-2); overflow-wrap: anywhere;
+    }
+    .rpath b { color: var(--ink); font-weight: 600; }
+    .routebar.missing .routebtn { border-color: var(--hairline); color: var(--ink-2); }
+    .routebar.missing .rnext { color: var(--ink); }
+    .routebar.missing .rpath { border-color: var(--hairline); }
+    .maps-pick { display: flex; gap: 8px; }
+    .maps-pick button {
+      flex: 1; min-height: 56px; border-radius: 12px; cursor: pointer;
+      border: 1px solid var(--hairline-strong); background: var(--panel); color: var(--ink);
+      font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    }
+    .maps-pick button[aria-pressed="true"] { border: 2px solid var(--ink); }
+    .maps-pick button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .rrow { display: flex; gap: 12px; align-items: center; padding: 6px 0; min-height: 52px; border-top: 1px solid var(--hairline); }
+    .rrow .n {
+      flex: none; width: 18px; font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600;
+    }
+    .rrow .t { flex: 1; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; min-width: 0; }
+    .rrow .t b { font-weight: 700; }
+    .rrow .t .rsub { display: block; font-size: 12.5px; color: var(--ink-2); }
+    .rrow.here .n { color: var(--ink-2); }
+    .rrow.out .t, .rrow.out .n { color: var(--ink-struck); }
+    .rrow.out .t s { text-decoration-thickness: 1px; }
+    .rrow .yours { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-2); margin-left: 6px; }
+    .rrow .miss { color: var(--alert-text); }
+    .racts { display: flex; gap: 4px; flex: none; }
+    .racts button {
+      width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer;
+      background: none; border: 1px solid var(--hairline-strong); border-radius: 8px; color: var(--ink);
+    }
+    .racts .mini-btn { width: auto; display: inline-flex; padding: 0 12px; color: var(--ink-2); }
+    .racts button:disabled { opacity: 0.3; cursor: default; }
+    .racts button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .racts .ico { width: 16px; height: 16px; }
+    .racts .up .ico { transform: rotate(-90deg); }
+    .racts .down .ico { transform: rotate(90deg); }
+    .rhead { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+    .rhead .spacer { flex: 1; }
+    .rlist { margin-bottom: 4px; }
+    .rlist + .addrow { margin: 4px 0 6px; }
+    .route-open { display: flex; flex-direction: column; gap: 12px; }
+    .switch-form { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; }
+    .switch-form .seg-help, .switch-form .field-error { margin: 0; }
+    .switch-acts { display: flex; gap: 10px; align-items: center; }
+    .switch-acts .mini-btn { min-height: 44px; padding: 0 16px; }
+    .switch-acts .submit { flex: 1; margin: 0; }
+    .check-row { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 13px; line-height: 1.45; color: var(--ink-2); cursor: pointer; }
+    .check-row input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--ink); }
+    .rpick { width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--hairline);
+      padding: 12px 0; min-height: 44px; cursor: pointer; font-family: inherit; color: var(--ink); display: flex; gap: 12px; }
+    .rpick .pc { flex: none; width: 44px; font-family: "IBM Plex Mono", monospace; font-weight: 700; font-size: 14px; }
+    .rpick .pt { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; min-width: 0; }
+    .rpick:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .place-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--hairline); }
+    .place-row .pc {
+      flex: none; width: 44px; padding-top: 1px;
+      font-family: "IBM Plex Mono", monospace; font-weight: 700; font-size: 14px;
+    }
+    .place-row .pt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .place-row .pn { font-size: 14px; }
+    .place-row .pa { font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+    .places-empty { margin: 0; padding: 12px 0; border-top: 1px solid var(--hairline); font-size: 12.5px; color: var(--ink-2); }
+    #places-sheet .sheet-body { gap: 0; }
+    #places-sheet .seg-help { margin: 0 0 4px; }
+    .addplace { margin: 12px 0 8px; }
+    .input.place-code { font-family: "IBM Plex Mono", monospace; text-transform: uppercase; }
+    .place-remove { align-self: flex-start; }
+    .msg-fields { display: flex; flex-wrap: wrap; gap: 8px 6px; }
+    .msg-fields .mini-btn { min-height: 36px; padding: 8px 10px; }
+    .msg-preview-head { display: flex; align-items: center; gap: 2px; margin-top: 6px; }
+    .msg-preview-head .spacer { flex: 1; }
+    .msg-preview-head .daystep {
+      background: none; border: 0; padding: 0; width: 44px; height: 44px; margin: -10px 0;
+      display: grid; place-items: center; color: var(--ink-2); cursor: pointer;
+      position: relative; z-index: 1; /* over the name line pulled up under them */
+    }
+    /* Side by side, not over each other; the last one's arrow keeps its edge. */
+    .msg-preview-head .daystep:last-child { margin-right: -6px; }
+    .msg-who { font-size: 12.5px; color: var(--ink-2); margin-top: -8px; }
+    .msg-preview {
+      background: var(--panel-raised); border-radius: 12px; padding: 12px 14px;
+      font-size: 14.5px; line-height: 1.55; color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .msg-preview b { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--hairline-strong); }
+    .msg-preview b.miss { color: var(--alert-text); border-bottom: 1px dashed var(--alert-text); }
+    .msg-foot {
+      display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--hairline);
+      font-size: 12.5px; line-height: 1.5; color: var(--ink-2);
+    }
+    .set-value.version-val { font-size: 12px; font-weight: 500; color: var(--ink-2); }
+    .mini-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1px solid var(--hairline-strong); border-radius: 6px;
+      padding: 7px 11px; cursor: pointer; color: var(--ink-2);
+      font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    }
+    .mini-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    .seg { display: flex; gap: 6px; }
+    .seg button {
+      flex: 1; padding: 11px 8px; border-radius: 10px; cursor: pointer;
+      background: var(--panel); border: 1px solid var(--hairline); color: var(--ink-2);
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    }
+    .seg button[aria-pressed="true"] {
+      background: var(--ink); border-color: var(--ink); color: var(--page);
+    }
+    .seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .seg-help { font-size: 12.5px; line-height: 1.5; color: var(--ink-2); margin: 0; }
+
+    .code-warn {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: var(--warn-strip); border-radius: 10px; padding: 12px;
+      font-size: 12.5px; line-height: 1.55; color: var(--ink-warn); margin-top: 12px;
+    }
+    .code-warn svg { color: var(--ink-warn); flex: none; margin-top: 1px; width: 15px; height: 15px;
+                     stroke-width: 2; fill: none; stroke: currentColor;
+                     stroke-linecap: round; stroke-linejoin: round; }
+    .set-row a.mini-btn { text-decoration: none; }
+
+    /* ============ SAVE THE CODE (a new list, once) ============ */
+    .code-card {
+      background: var(--panel); border: 1px solid var(--hairline-strong); border-radius: 12px;
+      padding: 18px 14px; margin: 6px 0 2px; text-align: center; user-select: all;
+      font-size: 30px; font-weight: 600; letter-spacing: 0.16em; color: var(--ink);
+    }
+    .save-code .field-error { margin: 0; }
+    .save-actions { display: flex; gap: 8px; }
+    .save-actions .submit { flex: 1; margin-top: 0; }
+    .save-actions .mini-btn { flex: none; justify-content: center; min-width: 96px; font-size: 12px; }
+    /* SAVED is quiet until the code has gone somewhere, then it is the way on. */
+    .submit.quiet { background: none; color: var(--ink); border: 1px solid var(--hairline-strong); }
+    .welcome-guide { align-self: center; margin-top: 6px; font-size: 13px; color: var(--ink-2); }
+    .welcome-guide a { color: var(--ink); font-weight: 600; }
+
+    /* ============ FEEDBACK ============ */
+    .input.feedback-text { resize: vertical; min-height: 150px; line-height: 1.45; }
+    .feedback-meta { display: flex; align-items: center; font-size: 12px; color: var(--ink-2); }
+    .feedback-meta .spacer { flex: 1; }
+    .feedback-meta + .field-error { margin: 0; }
+    .feedback-sent { align-items: flex-start; }
+    .feedback-sent h2 { margin: 0; font-size: 19px; font-weight: 600; color: var(--ink); }
+    .sent-mark {
+      width: 34px; height: 34px; border-radius: 50%; background: var(--ok); color: var(--page);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sent-mark .ico { width: 19px; height: 19px; stroke-width: 3; }
+
+    /* ============ PULL TO REFRESH ============ */
+    #pull-refresh {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      height: 56px; transform: translateY(-56px);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      color: var(--ink-2);
+      background: linear-gradient(to bottom, var(--page) 60%, transparent);
+      pointer-events: none;
+    }
+    #pull-refresh.dragging { transition: none; }
+    /* pokeTopEdge (app.js): a blank 12px band, just past WebKit's ~10px floor,
+       so it covers only the chrome's empty top padding. */
+    #pull-refresh.poke { height: 12px; background: var(--page); }
+    #pull-refresh.poke > * { visibility: hidden; }
+    #pull-refresh.settling { transition: transform 0.25s ease; }
+    #pull-refresh .pull-icon {
+      width: 14px; height: 14px; border: 2px solid var(--hairline-strong);
+      border-top-color: var(--ink-2); border-radius: 50%;
+      transition: transform 0.15s ease;
+    }
+    #pull-refresh.ready .pull-icon { transform: rotate(180deg); }
+    #pull-refresh.refreshing .pull-icon { animation: spin 0.7s linear infinite; }
+    #pull-refresh.said .pull-icon { display: none; } /* pullSay: the line alone */
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      #pull-refresh.refreshing .pull-icon { animation: none; }
+    }
+
+    /* ==================================================================
+       PHASE 6 -- assignments, itinerary, calls.
+
+       The app's unit is the assignment, not the flight. Four levels of data
+       (assignment > step > action > entity) flattened into ONE scrolling
+       itinerary: nesting is shown with a rail and indentation, never with a
+       tap. Depth comes from time -- finished steps collapse, the current one
+       is open -- so the driver never manages disclosure.
+       ================================================================== */
+
+    /* --- day grouping on the list --- */
+    .daygroup {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      color: var(--ink-2); margin: 14px 0 7px;
+    }
+    .daygroup:first-child { margin-top: 4px; }
+    .archivebar {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      background: none; border: 0; border-top: 1px solid var(--hairline);
+      padding: 12px 0 4px; margin-top: 14px; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-2);
+    }
+    .archivebar .spacer { flex: 1; }
+    .archivebar:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    /* --- the assignment card --- */
+    .acard {
+      display: flex; flex-direction: column; gap: 7px; width: 100%;
+      background: var(--card); border: 1px solid var(--hairline);
+      border-radius: 14px; padding: 12px 14px; text-align: left;
+      font: inherit; color: inherit; cursor: pointer;
+    }
+    .acard:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    /* In progress is "here": a brass outline. GB is its own hue on the left
+       edge, so the two can never be read as each other, day or night. */
+    .acard.now { border: 1.5px solid var(--brass); }
+    .acard.gb { border-left: 6px solid var(--gb); padding-left: 10px; }
+    /* Removed from this phone: the ghost of the card, as a removed row is --
+       dashed, struck, dim -- with its UNDO. Not a button: only UNDO acts. */
+    .acard.hid { background: none; border-style: dashed; cursor: default; color: var(--ink-struck); }
+    .acard.hid .arow { align-items: center; }
+    .acard.hid s { text-decoration: line-through; }
+    .acard.hid .ameta { color: var(--ink-struck); }
+    .acard.hid .mini-btn { width: auto; min-height: 36px; padding: 0 14px; color: var(--ink); }
+    /* At the foot of a run, under which copy it is. */
+    .hiderun { margin: 14px 0 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+    .hiderun p { margin: 0; max-width: 34ch; font-size: 12.5px; line-height: 1.45; color: var(--ink-struck); }
+    .arow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 9px; }
+    .atime {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: var(--mono-weight); font-size: 15px;
+      font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+    }
+    .adash { color: var(--ink-2); font-size: 13px; }
+    .aspace { flex: 1; }
+    .aroute { font-weight: 600; font-size: 14px; }
+    .ameta { color: var(--ink-2); font-size: 12.5px; }
+    .achip {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+      border: 1px solid var(--hairline-strong); color: var(--ink-2);
+    }
+    .achip.here { border-color: var(--brass); color: var(--brass); }
+    .achip.gb { background: var(--gb); border-color: var(--gb); color: var(--gb-ink); }
+    .achip.alert { border: 1.5px solid var(--alert-text); color: var(--alert-text); }
+    .achip.moved { border-color: var(--moved); color: var(--moved); }
+    /* On this phone only: the hollow dot a not-yet-sent edit carries. */
+    .achip.unsent { display: inline-flex; align-items: center; gap: 5px; }
+    .achip.unsent::before {
+      content: ""; width: 7px; height: 7px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ink);
+    }
+
+    /* --- the leave-by / clock strip, used on cards and in the call list --- */
+    .leaveline {
+      display: flex; align-items: baseline; gap: 8px;
+      background: var(--panel); border-radius: 12px; padding: 9px 12px;
+    }
+    .leaveline .lbl {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+    }
+    .leaveline .val {
+      font-family: "IBM Plex Mono", monospace; font-weight: var(--mono-weight);
+      font-size: 17px; font-variant-numeric: tabular-nums;
+    }
+    .leaveline .sub { color: var(--ink-2); font-size: 12.5px; margin-left: auto; }
+
+    /* --- RIGHT NOW: the one authoritative answer, always at the top --- */
+    .nowband {
+      background: var(--band-bg); color: var(--band-ink);
+      border: 1.5px solid var(--band-border);
+      border-radius: 14px; padding: 14px 16px 16px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .nowhead { display: flex; align-items: center; gap: 9px; margin-bottom: 3px; }
+    .nowband .k {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--band-label);
+    }
+    .nowband .v { font-weight: 600; font-size: 21px; line-height: 1.2; }
+    .nowband .why { font-size: 14px; color: var(--band-ink-2); }
+    /* How old the flight data is: the one thing no number on screen says. */
+    .fresh {
+      margin: -5px 2px 0; font-size: 12px; color: var(--ink-2);
+      display: flex; align-items: center; gap: 7px;
+    }
+    /* Live (under 5 min): a green dot; after that, words only, never red for
+       its age (freshState: on the free plan hours between checks is normal). */
+    .fresh.live::before {
+      content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none;
+    }
+    /* The free plan's month running out (checksNote): low is information,
+       paused is a problem, since times stop moving. */
+    .checksnote { margin: 0 0 12px; font-size: 12.5px; color: var(--ink-2); }
+    .checksnote.paused { color: var(--alert-text); }
+    /* When the current job is a GB run the band CARRIES the mark rather than
+       being displaced by it, so Right Now stays the one answer on screen. */
+    .gbtag {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; white-space: nowrap;
+      background: var(--gb); color: var(--gb-ink);
+      padding: 2px 6px; border-radius: 4px;
+    }
+    /* A GB itinerary is violet across its very top, above everything. */
+    .gbstrip { height: 4px; background: var(--gb); flex: none; }
+
+    /* --- the timeline --- */
+    .timeline { display: flex; flex-direction: column; }
+    .step { display: grid; grid-template-columns: 66px 1fr; }
+    .rail { position: relative; }
+    .rail::before {
+      content: ""; position: absolute; left: 55px; top: 0; bottom: 0;
+      width: 1px; background: var(--hairline-strong);
+    }
+    .step:first-child > .rail::before { top: 12px; }
+    .step:last-child > .rail::before { bottom: calc(100% - 12px); }
+    .dot {
+      position: absolute; left: 50px; top: 7px; width: 11px; height: 11px;
+      border-radius: 50%; background: var(--page);
+      border: 2px solid var(--hairline-strong);
+    }
+    .step.done > .rail .dot { background: var(--hairline-strong); }
+    .step.current > .rail .dot {
+      width: 16px; height: 16px; left: 47.5px;
+      border: 4px solid var(--brass); background: var(--page);
+    }
+    /* The time sits in its OWN gutter left of the rail, on the step code's
+       baseline. Positioned under the dot, the rail ran through the digits. */
+    .rtime {
+      position: absolute; left: 0; top: 4px; width: 44px; text-align: right;
+      font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600;
+      color: var(--ink-2); font-variant-numeric: tabular-nums;
+    }
+    .step.done > .rail .rtime { color: var(--ink-struck); }
+    .stepbody { padding: 4px 0 16px; min-width: 0; }
+    /* A stop already left is closed, and its head is the tap that opens it:
+       44px of it (v67; they sat 31px apart). The dot and the rail's time come
+       down with the head, open or closed, so opening one moves nothing. */
+    .step.done .stepbody { padding: 0 0 10px; }
+    .step.done .stepbody > .sthead { padding: 12px 0 2px; }
+    .step.done > .rail .dot { top: 15px; }
+    .step.done > .rail .rtime { top: 12px; }
+    .step.done:first-child > .rail::before { top: 20px; }
+    .step.done.open .stepbody { padding-bottom: 16px; } /* its foot's 44px, as on any open stop */
+    /* The tap itself: the head and the gap under it; a window's band and a
+       little of the gaps around it. */
+    .step.done .sthead { position: relative; }
+    .step.done:not(.open) .stepbody > .sthead::before {
+      content: ""; position: absolute; left: 0; right: 0; top: 0; bottom: -10px;
+    }
+    .step.window.done:not(.open) > .sthead::before {
+      content: ""; position: absolute; left: 0; right: 0; top: -4px; bottom: -4px;
+    }
+    /* Closed, its times are words; open, the button (renderStep). */
+    .step.done:not(.open) .sthead button.stimes,
+    .step.done.open .sthead .stplain { display: none; }
+    .sthead { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .scode { font-weight: 700; font-size: 17px; letter-spacing: 0.01em; line-height: 1.2; }
+    .splace { color: var(--ink-2); font-size: 13px; }
+    /* The stop you are at reads from arm's length. */
+    .step.current .scode { font-size: 26px; line-height: 1.1; }
+    .step.current .splace { font-size: 14px; }
+    .step.current > .rail .dot { top: 9px; }
+    .step.current > .rail .rtime { top: 9px; left: -8px; width: 52px; font-size: 14px; letter-spacing: -0.04em; }
+    .step.done .scode, .step.done .splace { color: var(--ink-struck); }
+    .stimes {
+      font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--ink-2);
+      font-variant-numeric: tabular-nums; margin-left: auto;
+    }
+
+    /* --- the two clocks a stop actually has --- */
+    .clocks {
+      display: grid; gap: 1px; margin-top: 10px; background: var(--hairline);
+      border: 1px solid var(--hairline-strong); border-radius: 12px; overflow: hidden;
+    }
+    .clock {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 9px;
+      padding: 9px 12px; background: var(--panel);
+    }
+    .clock .lbl {
+      flex: none; min-width: 104px; white-space: nowrap;
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+    }
+    .clock .val {
+      flex: none; font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: var(--mono-weight); font-size: 20px; font-variant-numeric: tabular-nums;
+    }
+    .clock .why {
+      flex: 1 1 140px; text-align: right; font-size: 12.5px;
+      line-height: 1.35; color: var(--ink-2);
+    }
+    /* The clock the driver is working to names itself in brass; one that has
+       passed goes grey instead of disappearing. */
+    .clock.active .lbl { color: var(--brass); }
+    .clock.passed .val, .clock.passed .why { color: var(--ink-2); }
+
+    /* --- actions and the people under them --- */
+    .action {
+      margin-top: 9px; border-left: 2px solid var(--hairline-strong);
+      padding-left: 10px; display: flex; flex-direction: column; gap: 7px;
+    }
+    .ahead { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+    .averb {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-2);
+    }
+    .awhere { font-weight: 600; font-size: 17px; }
+    .awhere.none { font-weight: 400; color: var(--ink-2); font-style: italic; }
+    .entity {
+      background: var(--panel); border: 1px solid var(--hairline);
+      border-radius: 10px; padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .erow { display: flex; align-items: baseline; gap: 7px; }
+    .ename { font-weight: 600; font-size: 17px; line-height: 1.25; min-width: 0; overflow-wrap: anywhere; }
+    /* The row's own menu (v68): three dots at the end of the name line, a
+       full 44px that hangs into the card's padding so the line keeps its
+       height. FIX, NOT COMING and the greeting live behind it. */
+    .more {
+      flex: none; align-self: flex-start; width: 44px; height: 44px;
+      margin: -11px -12px -11px auto; padding: 0; background: none; border: 0;
+      color: var(--ink-2); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      /* Its whole box takes the tap, over the line of words it hangs onto. */
+      position: relative; z-index: 1;
+    }
+    .eflight ~ .more { margin-left: -7px; }
+    /* A card with nothing between the name and the number: the buttons
+       stand clear of the menu's and the flight's 44px. */
+    .erow + .msgbox { margin-top: 5px; }
+    .more .ico { width: 20px; height: 20px; stroke-width: 2.5; }
+    .more:focus-visible { outline: 2px solid var(--ink); outline-offset: -8px; border-radius: 12px; }
+    .eflight {
+      font-family: "IBM Plex Mono", monospace; font-size: 15px; font-weight: 600;
+      color: var(--ink-2); margin-left: auto; font-variant-numeric: tabular-nums;
+    }
+    .estat { font-size: 14px; color: var(--ink-2); }
+    .estat b { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+    /* A flight is coloured only when it moved 5 min or more from schedule. */
+    .estat b.moved { color: var(--moved); }
+    .estat b.ontime { color: var(--ink); }
+    .etag {
+      flex: none; font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px; font-weight: 600;
+      padding: 1px 5px; border-radius: 4px;
+      border: 1px solid var(--hairline-strong); color: var(--ink-2);
+    }
+    .etag.gb { border-color: var(--gb); color: var(--gb); }
+
+    /* --- the instrument line. TERM / GATE / BELT / BAGS, on the row it
+           belongs to. A fixed four-column grid, so the slots line up between
+           the two entities of a combo -- the one place they get compared. --- */
+    .instr {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 7px 8px; margin-top: 2px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .instr > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .instr .k { font-family: "Instrument Sans", system-ui, sans-serif; font-size: 11px;
+                font-weight: 600; letter-spacing: 0.06em; color: var(--ink-2); }
+    .instr b { font-weight: var(--mono-weight); color: var(--ink); font-size: 17px; line-height: 1.2; }
+    /* An em-dash is a clock, not a hole: terminal, gate and belt publish on the
+       airport's schedule, which is why the poll ladder tightens to 45m out. */
+    .instr b.pending { color: var(--ink-struck); font-weight: 500; }
+    .pendnote { font-size: 12.5px; color: var(--ink-struck); }
+
+    /* ============ MOTION (motion.js) ============ */
+    /* M2 / M11: a changed value's characters roll inside their own window, and
+       a 2px blue underline sweeps in after them and stays for two minutes. */
+    .roll-cell { display: inline-block; position: relative; clip-path: inset(0 -2px); }
+    .roll-cell > span { display: inline-block; }
+    .roll-cell > .roll-old { position: absolute; left: 0; top: 0; }
+    .rolled { position: relative; }
+    .instr b.rolled { align-self: flex-start; } /* under the value, not the column */
+    .rolled::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 2px;
+      border-radius: 1px; background: var(--moved); transform-origin: left;
+    }
+    .rolled.roll-new::after {
+      animation: roll-sweep 240ms cubic-bezier(.2,.8,.2,1) var(--roll-delay, 0ms) both;
+    }
+    @keyframes roll-sweep { from { transform: scaleX(0); } }
+
+    /* Stage 3 (motion.js settleMarks). M3: one ring from the fresh dot. */
+    .fresh { position: relative; }
+    .fresh.live.pulse::after {
+      content: ""; position: absolute; left: 0; top: 50%; width: 7px; height: 7px;
+      margin-top: -3.5px; border-radius: 50%; box-shadow: 0 0 0 1px var(--ok);
+      animation: fresh-ring 700ms ease-out var(--pulse-delay, 0ms) both;
+    }
+    @keyframes fresh-ring { from { transform: scale(1); opacity: .7; } to { transform: scale(3.2); opacity: 0; } }
+    /* M6: the hollow dot fills; a YOURS chip comes up from its pending dim. */
+    .editable.edited.landed::after, .telnum.edited.landed::after {
+      animation: dot-fill 240ms cubic-bezier(.2,.8,.2,1) var(--land-delay, 0ms) both;
+    }
+    @keyframes dot-fill { from { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink); transform: scale(1.35); } }
+    .mine.landed { animation: chip-land 240ms cubic-bezier(.2,.8,.2,1) var(--land-delay, 0ms) both; }
+    @keyframes chip-land { from { opacity: 0.6; } }
+    .landed.quiet, .landed.quiet::after { animation-duration: 120ms; }
+    /* M5: the ghost settles in, then its strike inks in, then UNDO. */
+    .ghost.struck-new { animation: ghost-in 240ms cubic-bezier(.2,.8,.2,1) var(--ghost-delay, 0ms) both; }
+    .ghost.struck-new .gwhat {
+      animation: strike-in 240ms ease-out calc(var(--ghost-delay, 0ms) + 160ms) both;
+    }
+    .ghost.struck-new .mini-btn { animation: ghost-in 120ms ease-out calc(var(--ghost-delay, 0ms) + 400ms) both; }
+    @keyframes ghost-in { from { opacity: 0; } }
+    @keyframes strike-in { from { text-decoration-color: transparent; } }
+    @media (prefers-reduced-motion: reduce) {
+      .fresh.live.pulse::after { animation: none; opacity: 0; }
+    }
+
+    /* M1: the stop advances (a view transition; motion.js advancePaint). The
+       ring travels, RIGHT NOW's words lift out before the new ones rise in,
+       and every step (named st-<at> inline, renderStep) slides and resizes to
+       its new place instead of the page crossfading as a whole. Names exist
+       only on the itinerary. */
+    .step.live > .rail .dot, .leg.now .dot { view-transition-name: now-ring; }
+    .nowband { view-transition-name: now-band; }
+    .nowband .v { view-transition-name: now-what; }
+    .nowband .why { view-transition-name: now-why; }
+    /* What sits under the timeline moves with it rather than ghosting. */
+    .screen-pad > .fresh { view-transition-name: it-fresh; }
+    #add-stop { view-transition-name: it-addstop; }
+    .screen-pad > .notes { view-transition-name: it-notes; }
+    .screen-pad > .undo-row { view-transition-name: it-undo; }
+    .screen-pad > .provenance { view-transition-name: it-prov; }
+    ::view-transition-group(*) {
+      animation-duration: 400ms; animation-timing-function: cubic-bezier(.2,.8,.2,1);
+    }
+    ::view-transition-old(now-what), ::view-transition-old(now-why) {
+      animation: vt-lift-out 160ms ease-in both;
+    }
+    ::view-transition-new(now-what), ::view-transition-new(now-why) {
+      animation: vt-rise-in 220ms cubic-bezier(.2,.8,.2,1) 180ms both;
+    }
+    @keyframes vt-lift-out { to { opacity: 0; transform: translateY(-8px); } }
+    @keyframes vt-rise-in { from { opacity: 0; transform: translateY(8px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .rolled.roll-new::after { animation: none; }
+    }
+
+    /* Stage 4 (motion.js). M7, adapted: a call ticked fills and its row dims,
+       in place (never re-sorted); unticked, the same backwards. */
+    .crow.tick-new .tickbox { animation: tick-fill 240ms cubic-bezier(.2,.8,.2,1) both; }
+    .crow.tick-new .nm { animation: call-dim 240ms ease both; }
+    .crow.tick-new .tel .when { animation: ghost-in 240ms ease 120ms both; }
+    @keyframes tick-fill { from { background: transparent; border-color: var(--hairline-strong); color: transparent; transform: scale(.85); } }
+    @keyframes call-dim { from { color: var(--ink); } }
+    .crow.untick-new .tickbox { animation: tick-empty 240ms ease both; }
+    .crow.untick-new .nm { animation: call-undim 240ms ease both; }
+    @keyframes tick-empty { from { background: var(--ok); border-color: var(--ok); color: var(--page); } }
+    @keyframes call-undim { from { color: var(--ink-2); } }
+    .crow.quiet .tickbox, .crow.quiet .nm, .crow.quiet .tel .when { animation-duration: 120ms; animation-delay: 0ms; }
+    .crow.quiet .tickbox { animation-name: ghost-in; }
+    /* A note line's tick toggles in place: the same fill, as a transition. */
+    .nline .tickbox { transition: background-color 240ms ease, border-color 240ms ease, color 240ms ease; }
+
+    /* M9: the first time a GB run is shown on this phone, its violet strip
+       draws across the top and the plate stamps in. 400 ms, once. */
+    .gbstrip.gb-new { transform-origin: left; animation: gb-draw 400ms cubic-bezier(.2,.8,.2,1) var(--gb-delay, 0ms) both; }
+    .gbtag.gb-new { animation: gb-stamp 280ms cubic-bezier(.2,.8,.2,1) calc(var(--gb-delay, 0ms) + 120ms) both; }
+    @keyframes gb-draw { from { transform: scaleX(0); } }
+    @keyframes gb-stamp { from { transform: scale(1.35); opacity: 0; } }
+    .gb-new.quiet { animation: ghost-in 120ms ease var(--gb-delay, 0ms) both; }
+
+    /* M12: the launch splash (the check is in <head>). The wordmark on the
+       theme's own page, the brass curb draws in under "curb", then the whole
+       of it dissolves into the app, which has been painting underneath all
+       along. 570 ms. It never takes a tap: nothing waits on it. */
+    #splash { display: none; }
+    .splash #splash {
+      display: flex; position: fixed; inset: 0; z-index: 100; pointer-events: none;
+      align-items: center; justify-content: center; background: var(--page);
+      animation: splash-out 240ms ease-in-out 330ms both; /* a dissolve, not a cut */
+    }
+    .splash-mark { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; color: var(--ink); }
+    .splash-mark .curb { position: relative; }
+    .splash-mark .curb::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 3px;
+      border-radius: 2px; background: var(--brass-fill); transform-origin: left;
+      animation: gb-draw 280ms cubic-bezier(.2,.8,.2,1) 20ms both;
+    }
+    @keyframes splash-out { to { opacity: 0; visibility: hidden; } }
+    @media (prefers-reduced-motion: reduce) {
+      .splash #splash { display: none; }
+      .nline .tickbox { transition-duration: 120ms; }
+    }
+
+    /* --- the passenger's number and the ways to message it. Assignments land
+           at 5 PM and everyone has to be reached that evening, then again from
+           the kerb. Shown, never dialled: drivers message (the owner). --- */
+    .tel {
+      display: flex; align-items: center; gap: 8px; margin-top: 2px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 15px;
+      font-weight: var(--mono-weight); color: var(--ink); text-decoration: none;
+    }
+    .msgbox { display: flex; flex-direction: column; gap: 6px; }
+    .msgbtns { display: flex; gap: 8px; }
+    .msgbtn {
+      height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; border-radius: 10px; text-decoration: none; cursor: pointer; padding: 0 12px; margin: 0;
+      font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
+    }
+    .msgbtn .ico-sm { width: 15px; height: 15px; }
+    .msgbtn.wa { flex: 1; background: var(--ink); color: var(--page); border: 1px solid var(--ink); }
+    .msgbtn.sms { flex: 0 0 104px; background: none; color: var(--ink); border: 1px solid var(--hairline-strong); }
+    .msgbtn.sms.only { flex: 1; }
+    .msgbtn.small { height: 36px; flex: none; font-size: 11px; letter-spacing: 0.08em; }
+    .msgbtn.small .ico-sm { width: 13px; height: 13px; }
+    .msgbtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    /* On the run's card (v68) the number and its two buttons share a line:
+       the word alone, WA and TEXT, each a full 44px. Where the two do not
+       fit (a 360px phone, a long number, an old one struck beside it) the
+       pair drops under the number rather than squeeze it. MESSAGED sits
+       under the number. The call list keeps the full-width pair. */
+    .telline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 2px; }
+    .telwho { flex: 1 1 0; min-width: min-content; display: flex; flex-direction: column; gap: 2px; }
+    .telwho .tel { margin-top: 0; white-space: nowrap; }
+    /* The card is 239px wide inside on a 375px phone and 224 on a 360; the
+       pair takes 96 and the gap 8. Three in four printed numbers are 15
+       characters, so the number steps from 15px at 390 to 13 at 360 and the
+       line holds on each. */
+    .telwho .telnum { font-size: clamp(13px, calc(13px + (100vw - 360px) / 15), 15px); }
+    .telwho > .when { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ok); }
+    .telwho > .when.stale { color: var(--alert-text); }
+    .msgbtns.c { flex: none; margin-left: auto; gap: 6px; }
+    .msgbtn.c { flex: none; min-width: 44px; padding: 0 6px; font-size: 11px; letter-spacing: 0.06em; }
+    .msgbtn.c.only { flex: none; }
+    /* A party's other numbers: quieter, under a dashed rule, each its own pair. */
+    .msgother {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px;
+      padding-top: 8px; margin-top: 2px; border-top: 1px dashed var(--hairline-strong);
+    }
+    .msgother .tel { flex: 1; margin: 0; font-size: 13px; font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+    .msgother .msgbtns { gap: 6px; }
+    .greet-ask {
+      display: flex; flex-direction: column; gap: 10px; margin-top: 2px; padding: 12px;
+      border: 1px solid var(--hairline-strong); border-radius: 12px; background: var(--panel-raised);
+    }
+    .greet-q { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .greet-chip {
+      margin-left: 8px; flex: none; background: none; cursor: pointer; padding: 3px 7px;
+      border: 1px solid var(--hairline-strong); border-radius: 5px; color: var(--ink-2);
+      font-family: "Instrument Sans", system-ui, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    }
+    .tel .when {
+      margin-left: auto; flex: none; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ok);
+    }
+    /* Messaged, and the plan changed since: red is a problem, and this one
+       is the driver's to fix by messaging again. */
+    .tel .when.stale { color: var(--alert-text); }
+    /* Its longer words take their own line under the number. */
+    .tel.changed { flex-wrap: wrap; row-gap: 2px; }
+    .tel.changed .when { margin-left: 0; flex-basis: 100%; }
+    .stalenote { font-size: 12.5px; line-height: 1.4; color: var(--alert-text); overflow-wrap: anywhere; }
+    .crow.stale .tickbox { border-color: var(--alert-text); }
+    .tel.none { color: var(--alert-text); }
+    .tel:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
+
+    /* Which clock this passenger sets: a role, not a problem, so a neutral
+       chip named for the clock -- the clock and the person point at each other. */
+    .role {
+      align-self: flex-start; font-size: 12.5px; font-weight: 600; color: var(--ink);
+      padding: 3px 8px; border: 1px solid var(--hairline-strong); border-radius: 6px;
+    }
+
+    /* A flight delay never rewrites dispatch's time; it is reported beneath it
+       and named for the flight that caused it. */
+    .changed {
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 8px;
+      font-size: 14px; font-weight: 600; color: var(--alert-text);
+    }
+
+    .notes {
+      background: var(--panel); border-radius: 12px; padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 6px; margin-top: 14px;
+    }
+    .notes .k {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+    }
+    .notes p { margin: 0; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; }
+
+    .issues {
+      border: 1px dashed var(--border-dashed); border-radius: 12px;
+      padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+      margin-top: 14px;
+    }
+    .issues .k {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+    }
+    .issues li { font-size: 13px; color: var(--ink-2); }
+    .issues ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+    .issues b { color: var(--ink); font-weight: 600; }
+    /* A flight to fix: the words, then FIX at a thumb's size. */
+    .issues li.ifix, .issues li.ifixed { list-style: none; margin-left: -18px; display: flex; gap: 10px; align-items: center; }
+    .issues li.ifix span { flex: 1; min-width: 0; }
+    .issues li.ifix .mini-btn { flex: none; margin: 0; min-height: 36px; padding: 0 14px; color: var(--ink); }
+    .issues li.ifixed .ico { flex: none; color: var(--ok); }
+    /* A flight filled from an airline the list learned. */
+    .lword { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-2); align-self: center; }
+
+    /* --- itinerary header --- */
+    .ihead {
+      display: flex; align-items: center; gap: 9px; padding: 10px var(--gutter);
+      border-bottom: 1px solid var(--hairline); background: var(--panel);
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+    }
+    .ihead .back {
+      background: none; border: 0; padding: 0; cursor: pointer; font: inherit;
+      color: var(--ink); display: flex; align-items: center; gap: 4px;
+    }
+    .ihead .veh { margin-left: auto; text-align: right; }
+    .ihead .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 13px;
+                  font-weight: 500; letter-spacing: 0.02em; }
+
+    .estat .muted { color: var(--ink-struck); }
+
+    /* ---------- Phase 7: corrections ---------- */
+    /* Zero specificity: a value that became a button keeps its own type
+       (.eflight, .stimes, .awhere). As a plain class this reset came later and
+       won, so they rendered as 16px body text. */
+    :where(.editable) {
+      font: inherit; color: inherit; background: none; border: 0; padding: 0;
+      cursor: pointer; text-align: inherit;
+    }
+    .editable:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 2px; }
+    /* A blank is a dashed button where the value would be. */
+    .editable.empty, .editable.none {
+      border-bottom: 1px dashed var(--border-dashed); color: var(--ink-2);
+      font-style: normal;
+    }
+    .eflight.editable.empty {
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding-bottom: 1px;
+    }
+    /* A correction is visibly the driver's: a small ink dot on the value. */
+    /* The phone's is on the number itself (.telnum): its fix is in the row's menu. */
+    .editable.edited::after, .telnum.edited::after {
+      content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 5px;
+      border-radius: 50%; background: var(--ink); vertical-align: middle;
+    }
+    .editable.contested, .telnum.contested { color: var(--alert-text); }
+    /* Not on the server yet: the same dot, hollow, until it lands. */
+    .editable.pending::after, .telnum.pending::after { background: none; box-shadow: inset 0 0 0 1.5px var(--ink); }
+    /* The number's dot hangs in the gap after it: it must not push the two
+       buttons off the number's line. */
+    .telnum { position: relative; }
+    .telnum.edited::after { position: absolute; left: 100%; top: 50%; margin: -3px 0 0 4px; }
+    .contest {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+      margin-top: 5px; padding: 8px 10px; border-radius: 10px;
+      background: var(--alert-bg); border: 1px solid var(--alert-text);
+      font-size: 12.5px; color: var(--ink-2);
+    }
+    .contest b { color: var(--ink); font-family: "IBM Plex Mono", monospace; }
+    .contest.agreed { background: var(--ok-bg); border-color: var(--ok); }
+    .contest-acts { display: flex; gap: 6px; margin-left: auto; }
+    .undo-row {
+      display: flex; align-items: center; gap: 10px; margin-top: 14px;
+      font-size: 12.5px; color: var(--ink-2);
+    }
+    .undo-row .mini-btn { margin-left: auto; }
+    .issues li .mini-btn { margin-left: 8px; padding: 3px 8px; font-size: 11px; }
+    /* ---------- Phase 7b: rows added and removed ---------- */
+    /* A removed row: struck and dim, its own undo beside it, forever. */
+    .ghost {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      font-size: 12.5px; color: var(--ink-struck);
+    }
+    .ghost .gwhat { text-decoration: line-through; font-weight: 600; font-size: 15px; }
+    .ghost .gverb { font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+    .ghost .mini-btn { margin-left: auto; padding: 4px 9px; font-size: 11px; }
+    .entity.gone { background: none; border-style: dashed; }
+    .step.gone > .rail .dot { background: none; border-style: dashed; }
+    .step.gone > .rail .rtime { color: var(--ink-struck); text-decoration: line-through; }
+    .step.gone .stepbody { padding-bottom: 12px; }
+    /* A row the driver added: theirs, and visibly not dispatch's. */
+    .mine {
+      flex: none; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 1px 5px; border-radius: 4px;
+      border: 1px dashed var(--ink-2); color: var(--ink);
+    }
+    .mine.pending { opacity: 0.6; }
+    .entity.added { border-style: dashed; border-color: var(--border-dashed); }
+    /* ---------- What dispatch changed (a re-sent sheet, v61) ---------- */
+    /* Strike-through is dispatch moving it: the old value struck, under or
+       beside the new. No new colour -- the struck ink, a neutral ink chip. */
+    s.swas { color: var(--ink-struck); text-decoration: line-through; font-weight: 400; }
+    s.swas.mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .sthead s.swas, .ahead s.swas, .erow s.swas, .tel s.swas { font-size: 13px; }
+    .tel s.swas { margin-left: 8px; }
+    .instr s.swas { font-size: 12px; }
+    .schip {
+      flex: none; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 2px 6px; border-radius: 5px; white-space: nowrap; line-height: 1.2;
+      border: 1px solid var(--ink); color: var(--ink);
+    }
+    .lwords .schip, .ntext .schip, .notes .schip { margin-left: 6px; vertical-align: 1px; }
+    .achip.upd { border-color: var(--ink); color: var(--ink); }
+    .awas { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 13px; }
+    .cwas { padding: 4px 0 0 12px; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; }
+    .swasline { margin-top: 3px; font-size: 13px; }
+    .rwas {
+      position: absolute; left: 0; top: 20px; width: 44px; text-align: right;
+      font-family: "IBM Plex Mono", monospace; font-size: 11px;
+      color: var(--ink-struck); text-decoration: line-through;
+    }
+    .ntime .nwas { display: block; font-size: 11px; }
+    /* What the new sheet dropped: dashed and struck, no UNDO -- it is dispatch's. */
+    .sghost {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0;
+      border: 1px dashed var(--border-dashed); border-radius: 10px; padding: 8px 12px;
+      font-size: 12.5px; color: var(--ink-struck);
+    }
+    .sghost .gwhat { text-decoration: line-through; font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
+    .sghost .gplace { text-decoration: line-through; font-size: 13px; }
+    .sghost .gverb { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+    .entity.dropped { background: none; border: 0; padding: 0; }
+    .step.dropped > .rail .rtime, .leg.dropped .rtime {
+      top: 12px; color: var(--ink-struck); text-decoration: line-through;
+    }
+    .step.dropped .stepbody { padding-bottom: 12px; }
+    .leg.dropped .legbody { display: block; }
+    .nline.dropped { cursor: default; }
+    .nline.dropped .sghost { flex: 1; }
+    .sheetchg {
+      background: var(--panel); border: 1px solid var(--ink); border-radius: 12px;
+      overflow: hidden; margin: 0 0 12px;
+    }
+    .sc-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 2px 14px; }
+    .sc-head .k { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink); }
+    .sc-head .spacer { flex: 1; }
+    .sc-head .mini-btn { min-width: 44px; min-height: 36px; justify-content: center; color: var(--ink);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+    .sc-lede { margin: 0; padding: 0 14px 10px; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+    .sc-lede .mono { color: var(--ink); }
+    .sc-row {
+      display: grid; grid-template-columns: 76px minmax(0, 1fr); column-gap: 10px; align-items: baseline;
+      padding: 10px 14px; border-top: 1px solid var(--hairline); font-size: 14px; line-height: 1.4;
+    }
+    .sc-where { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+    .sc-where.lbl { font-size: 11px; letter-spacing: 0.06em; color: var(--ink-2); }
+    .sc-what { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; overflow-wrap: anywhere; }
+    .sc-what .mono { font-size: 13px; }
+    .sc-what b.mono { font-weight: var(--mono-weight); }
+    .sc-gone, .sc-note { color: var(--ink-2); font-size: 13px; }
+    .sc-sub { flex-basis: 100%; font-size: 12.5px; color: var(--ink-2); }
+    .idetail b { color: var(--ink); font-weight: 600; }
+    /* Where a thing would go: dashed, quiet, never a second accent. */
+    .addrow {
+      align-self: flex-start; background: none; cursor: pointer;
+      border: 0; border-bottom: 1px dashed var(--border-dashed);
+      padding: 2px 0; color: var(--ink-2);
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    }
+    .addrow:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .addrow.quiet { color: var(--ink-struck); border-bottom-color: transparent; }
+    .addstop { margin: 4px 0 0 66px; }
+    /* Timed driver-notes lines, under the stop they fall in, worded as printed. */
+    .notelines {
+      margin-top: 9px; border-left: 2px solid var(--hairline-strong);
+      padding-left: 9px; display: flex; flex-direction: column;
+    }
+    /* The whole line is the target, 44px tall, with the tick at its left. */
+    .nline { display: flex; gap: 8px; align-items: center; min-height: 44px; padding: 4px 0; cursor: pointer; }
+    .nline .tickbox { width: 18px; height: 18px; margin-top: 1px; font-size: 11px; }
+    .nline.done .tickbox { background: var(--ok); border-color: var(--ok); color: var(--page); }
+    .ntime {
+      flex: none; min-width: 52px; padding-top: 1px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 12px; color: var(--ink-2);
+    }
+    .ntext { flex: 1; min-width: 0; font-size: 13.5px; overflow-wrap: anywhere; }
+    .nline.done .ntext, .nline.done .ntime { color: var(--ink-struck); }
+    .step.done .notelines { display: none; }
+    .step.done.open .notelines { display: flex; }
+    /* A window (isWindow): dispatch's label in a dashed band, never a place;
+       its legs are the rail items, each ticked by the driver. */
+    .step.window { display: block; }
+    .wband {
+      margin: 2px 0 10px; padding: 8px 12px;
+      border: 1px dashed var(--hairline-strong); border-radius: 10px;
+    }
+    .step.window .scode, .step.window.current .scode { font-size: 15px; line-height: 1.3; }
+    .step.window.live .wband { border-color: var(--brass); }
+    .step.window .stimes { font-size: 12px; }
+    .legs { display: flex; flex-direction: column; }
+    .leg { display: grid; grid-template-columns: 66px 1fr; min-height: 44px; }
+    .leg .dot { top: 5px; }
+    .leg .rtime { top: 3px; }
+    .step.window:last-child .leg:last-child .rail::before { bottom: calc(100% - 12px); }
+    .legbody { display: flex; gap: 10px; align-items: flex-start; padding: 0 0 14px; min-width: 0; }
+    .lwords { flex: 1; min-width: 0; }
+    .ltext { font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; text-align: left; }
+    .ntext .ltext { font-size: 13.5px; }
+    .lwords .mine, .ntext .mine { margin-left: 6px; vertical-align: 1px; }
+    .lbeside { display: block; margin-top: 3px; font-size: 12.5px; color: var(--ink-2); }
+    .leg.gone .legbody, .nline.gone { flex: 1; }
+    .leg.gone .ghost { flex: 1; }
+    .leg.gone .dot { background: none; border-style: dashed; }
+    .leg.gone .rtime { color: var(--ink-struck); text-decoration: line-through; }
+    .leg-acts { display: flex; align-items: center; gap: 10px; }
+    .leg-acts .spacer { flex: 1; }
+    .leg .tickbox { width: 22px; height: 22px; margin-top: 0; font-size: 12px; }
+    .leg.done .tickbox { background: var(--ok); border-color: var(--ok); color: var(--page); }
+    .leg.done .ltext {
+      color: var(--ink-struck); text-decoration: line-through; text-decoration-color: var(--hairline-strong);
+    }
+    .leg.done .dot { background: var(--hairline-strong); }
+    .leg.done .rtime { color: var(--ink-struck); }
+    .leg.now .dot { width: 16px; height: 16px; left: 47.5px; top: 3px; border: 4px solid var(--brass); }
+    .leg.now .rtime { color: var(--ink); }
+    .leg.now .ltext { font-weight: 600; }
+    .step.window.done .legs { display: none; }
+    .step.window.done.open .legs { display: flex; }
+    .step.window .stepfoot { margin: 0 0 14px 66px; display: flex; align-items: center; gap: 22px; }
+    .step.window.done .stepfoot { display: none; }
+    .step.window.done.open .stepfoot { display: flex; }
+    .notes .notes-all { align-self: flex-start; }
+    .nowtime { display: flex; align-items: baseline; gap: 10px; }
+    .nowtime .t { font-family: "IBM Plex Mono", monospace; font-size: 26px; font-weight: 700; line-height: 1.15; }
+    .nowtime .in { font-size: 13px; font-weight: 600; }
+    .nowhead .wk { margin-left: auto; text-align: right; }
+    /* A second door at the stop stands clear of the cards above it. */
+    .action + .action { margin-top: 16px; }
+    .stepfoot { margin-top: 12px; }
+    /* The stop's one menu (v68): a 44px row across its foot. Adding a
+       passenger, the time, the door and "not happening" are behind it. */
+    .stopmenu {
+      display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px;
+      background: none; border: 0; border-top: 1px solid var(--hairline); padding: 0;
+      color: var(--ink-2); cursor: pointer; text-align: left;
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    }
+    .stopmenu .ico { width: 18px; height: 18px; margin-left: auto; stroke-width: 2.5; }
+    .stopmenu:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+    .step.done .stepfoot { display: none; }
+    .step.done.open .stepfoot { display: block; }
+    .issues.ok { border-color: var(--ok); background: var(--ok-bg); }
+    .row-fields { display: flex; flex-direction: column; gap: 14px; }
+    .row-fields[hidden] { display: none; }
+    .row-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .input[type="time"] { color-scheme: dark; }
+    [data-theme="day"] .input[type="time"] { color-scheme: light; }
+    .edit-doc { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+    .edit-times { display: flex; gap: 10px; }
+    .edit-times .field { flex: 1; min-width: 0; }
+    /* Dispatch's time under the driver's own: kept, not struck. */
+    .stdisp {
+      font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-2);
+      text-align: right; margin-top: 1px;
+    }
+    .step.done .stdisp { color: var(--ink-struck); }
+    .edit-note { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+
+    /* ---------- the call list ---------- */
+    .callsbar {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      background: var(--panel); border: 1px solid var(--hairline);
+      border-radius: 12px;
+      min-height: 52px; padding: 10px 14px; margin-bottom: 4px; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+    }
+    .callsbar:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .callsbar .ico { width: 14px; height: 14px; flex: none; color: var(--ink-2); }
+    .callsbar .spacer { flex: 1; }
+    .callsbar .left { color: var(--ink); }
+    .callsbar .ok { color: var(--ok); }
+    .callsbar .bad { color: var(--alert-text); }
+    /* Paused flight checks (checksBar): a problem, so its icon is red too. */
+    #checks-bar .ico { color: var(--alert-text); }
+
+    .callhead {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px; /* the day arrows' 44px clears the first tick */
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+    }
+    .callhead .spacer { flex: 1; }
+    /* A 44px target around a small chevron: the day steps, the label stays put. */
+    .callhead .daystep {
+      background: none; border: 0; padding: 0; margin: -14px -10px; cursor: pointer;
+      width: 44px; height: 44px; display: grid; place-items: center; color: var(--ink-2);
+    }
+    .callhead .daystep:disabled { opacity: 0.25; cursor: default; }
+    .callhead .left { color: var(--ink); }
+
+    .crow {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 10px 3px; border-bottom: 1px solid var(--hairline);
+    }
+    .crow:last-of-type { border-bottom: 0; }
+    .tickbox {
+      flex: none; width: 19px; height: 19px; border-radius: 50%; margin-top: 2px;
+      border: 1.5px solid var(--hairline-strong); background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; line-height: 1; color: transparent; cursor: pointer;
+      padding: 0; font-family: inherit;
+    }
+    .tickbox:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    /* Ticked, not cleared: a called passenger stays on the list, dimmed,
+       because at 6 AM at the kerb you want that same number again. */
+    .crow.done .tickbox { background: var(--ok); border-color: var(--ok); color: var(--page); }
+    .crow.done .nm { color: var(--ink-2); }
+    .crow.flagged .tickbox { border-color: var(--alert-text); border-style: dashed; }
+    .cwho { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .nmline { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+    .nmline .nm { font-weight: 600; font-size: 16px; }
+    .nmline .cw {
+      margin-left: auto; flex: none; font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 12px; color: var(--ink-2);
+    }
+
+    /* What you collect, on the step where you collect it. */
+    .collect {
+      display: flex; align-items: center; gap: 7px; margin-top: 8px;
+      background: var(--panel-raised); border-radius: 10px; padding: 8px 12px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 12px; color: var(--ink-2);
+    }
+    .collect .ico { width: 13px; height: 13px; flex: none; color: var(--ink-2); }
+    .collect b { color: var(--ink); font-weight: var(--mono-weight); }
+
+    /* Which copy of the run this is. Quiet, at the foot, because the driver
+       never has to choose -- the importer keys on the number and the newest
+       printed copy wins on its own. */
+    .provenance {
+      margin: 18px 0 0; font-size: 12.5px; color: var(--ink-struck);
+      text-align: center; line-height: 1.5;
+    }
+    .provenance b {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-weight: var(--mono-weight); color: var(--ink-2);
+      /* Plex Mono slashes its zero. At this size, in ink-2, two adjacent zeros
+         read as a strike through the whole number -- and this is the figure a
+         driver says out loud to dispatch. Space them and lift the contrast. */
+      font-size: 12.5px; letter-spacing: 0.06em; color: var(--ink);
+    }
+
+    .step.done .action,
+    .step.done .clocks { display: none; }
+    .step.done.open .action,
+    .step.done.open .clocks { display: flex; }
+    .step.done.open .clocks { display: grid; }
+    .step[data-collapsible] .sthead { cursor: pointer; }
+    /* The chevron follows the code, so it never wraps onto a line of its own. */
+    .step[data-collapsible] .sthead::after {
+      content: "▾"; font-size: 11px; color: var(--ink-struck);
+      order: 1; transition: transform .15s ease;
+    }
+    .step[data-collapsible] .splace { order: 2; }
+    .step[data-collapsible] .stimes { order: 3; }
+    .step[data-collapsible].open .sthead::after { transform: rotate(180deg); }
+
+    .screen-pad { padding: 13px var(--gutter) 22px; display: flex; flex-direction: column; gap: 11px; }
+
+    /* ---------- hit areas ----------
+       A thumb in a moving car needs 44px. The small controls keep their look and
+       get an invisible 44px box centred on them; where two boxes meet, the later
+       control in the page wins, so neighbours split the gap instead of stealing.
+       ::before, because .editable.edited already draws its dot with ::after. */
+    a.tel, .editable, .tickbox, .icon-btn, .ihead .back, .addrow, .mini-btn,
+    .text-btn, .callsbar, .archivebar, .callhead .daystep, .seg button, .greet-chip,
+    .racts button, .welcome-guide a { position: relative; }
+    a.tel::before, .editable::before, .tickbox::before, .icon-btn::before,
+    .ihead .back::before, .addrow::before, .mini-btn::before, .text-btn::before,
+    .callsbar::before, .archivebar::before, .seg button::before, .greet-chip::before,
+    .racts button::before, .welcome-guide a::before {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      width: max(100%, 44px); height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+    /* The number is the target that matters most: it wins any overlap. */
+    a.tel { z-index: 1; }
+    /* A long address wraps the stop's times onto a second line, 9px above the
+       door under them: two centred boxes would meet in the middle and the door
+       would take the times' lower half. Each leans away from the other, into
+       words that take no tap. */
+    .sthead .stimes::before { transform: translate(-50%, calc(-50% - 7px)); }
+    .ahead .awhere::before { transform: translate(-50%, calc(-50% + 11px)); }
+  </style>
+</head>
+<body>
+  <div id="splash" aria-hidden="true"><span class="splash-mark"><span class="curb">curb</span>side</span></div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" /></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></symbol><symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" /><circle cx="7" cy="17" r="2" /><path d="M9 17h6" /><circle cx="17" cy="17" r="2" /></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></symbol><symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></symbol><symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" /></symbol><symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol><symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01" /><path d="M8.5 16.429a5 5 0 0 1 7 0" /><path d="M5 12.859a10 10 0 0 1 5.17-2.69" /><path d="M19 12.859a10 10 0 0 0-2.007-1.523" /><path d="M2 8.82a15 15 0 0 1 4.177-2.643" /><path d="M22 8.82a15 15 0 0 0-11.288-3.764" /><path d="m2 2 20 20" /></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></symbol><symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M9 15h6" /><path d="M12 18v-6" /></symbol><symbol id="i-message-circle" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></symbol><symbol id="i-message-square" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14" /><path d="M12 5v14" /></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol><symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></symbol><symbol id="i-plane" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" /></symbol><symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" /><path d="m21 2-9.6 9.6" /><circle cx="7.5" cy="15.5" r="5.5" /></symbol><symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" /><path d="M15 5.764v15" /><path d="M9 3.236v15" /></symbol><symbol id="i-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></symbol><symbol id="i-ellipsis" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></symbol><symbol id="i-rotate-cw" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></symbol></defs></svg>
+
+  <div id="pull-refresh"><span class="pull-icon"></span><span class="pull-label">Pull to refresh</span></div>
+
+  <div class="app" id="app">
+    <header class="chrome">
+      <span class="wordmark">curbside</span>
+      <span class="spacer"></span>
+      <span id="clock">--:--</span>
+      <button class="icon-btn import-btn" id="import-btn" type="button" aria-label="Import dispatch's PDF" hidden>
+        <svg class="ico"><use href="#i-file-plus" /></svg>
+      </button>
+      <button class="icon-btn" id="settings-btn" type="button" aria-label="Settings">
+        <svg class="ico"><use href="#i-settings" /></svg>
+      </button>
+      <button class="icon-btn update-flag" id="update-btn" type="button" aria-label="Update the app" hidden>
+        <svg class="ico"><use href="#i-rotate-cw" /></svg><span class="update-word">UPDATE</span>
+      </button>
+      <span class="offline-flag" id="offline-flag" hidden>
+        <svg class="ico"><use id="offline-ico" href="#i-wifi-off" /></svg><span id="offline-word">OFFLINE</span>
+      </span>
+    </header>
+
+    <main id="main"></main>
+  </div>
+
+  <!-- ============ IMPORT: the picker, the laptop's drop, and what it did ============ -->
+  <input type="file" id="import-file" class="offscreen" accept="application/pdf,.pdf" multiple
+         tabindex="-1" aria-hidden="true" />
+  <div class="drop-veil" id="drop-veil" hidden>
+    <div class="drop-frame">
+      <svg class="ico"><use href="#i-file-plus" /></svg>
+      <b>Drop dispatch's PDF</b>
+      <span>It's read here on this computer and added to your list. Several at once is fine.</span>
+    </div>
+  </div>
+  <div class="offscreen" id="import-status" role="status"></div>
+
+  <!-- ============ EDIT SHEET (Phase 7) ============ -->
+  <div class="sheet" id="edit-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="edit-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="edit-title">Correct</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="edit-cancel" type="button">CANCEL</button>
+    </div>
+    <form class="sheet-body" id="edit-form">
+      <div class="field">
+        <div id="edit-text">
+          <label for="edit-input">YOUR CORRECTION</label>
+          <input class="input" id="edit-input" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+        </div>
+        <!-- A step's times: yours, with dispatch's kept beside them. -->
+        <div class="edit-times" id="edit-times" hidden></div>
+        <p class="edit-doc" id="edit-doc"></p>
+        <p class="field-error" id="edit-error"></p>
+      </div>
+      <!-- An airline the importer had no code for: the fix can teach the list. -->
+      <label class="check-row" id="edit-learn-row" hidden><input type="checkbox" id="edit-learn" checked />
+        <span id="edit-learn-label"></span></label>
+      <p class="edit-note">Saved for this run on every phone using your list code. It survives the next
+      sheet from dispatch &mdash; and if dispatch sends a different value, you'll see both and choose.</p>
+      <button class="submit" id="edit-save" type="submit">SAVE CORRECTION</button>
+    </form>
+  </div>
+
+  <!-- ============ ROW SHEET (Phase 7b): what dispatch phoned in ============ -->
+  <div class="sheet" id="row-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="row-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="row-title">Add</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="row-cancel" type="button">CANCEL</button>
+    </div>
+    <form class="sheet-body" id="row-form" novalidate>
+      <div class="row-fields" id="row-entity">
+        <div class="field">
+          <label for="r-name">NAME</label>
+          <input class="input" id="r-name" autocomplete="off" placeholder="Last, First" />
+        </div>
+        <div class="field">
+          <label for="r-flight">FLIGHT <span class="opt">&mdash; if they have one</span></label>
+          <input class="input mono-input" id="r-flight" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="UA995" />
+        </div>
+        <div class="field">
+          <label for="r-dir">THAT FLIGHT IS</label>
+          <select class="input" id="r-dir">
+            <option value="A">Arriving &mdash; you collect them after it lands</option>
+            <option value="D">Departing &mdash; you deliver them for check-in</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="r-phone">PHONE <span class="opt">&mdash; optional</span></label>
+          <input class="input" id="r-phone" inputmode="tel" autocomplete="off" placeholder="+1 555 010 0000" />
+        </div>
+        <div class="field">
+          <label for="r-note">NOTE <span class="opt">&mdash; optional</span></label>
+          <input class="input" id="r-note" autocomplete="off" />
+        </div>
+      </div>
+      <div class="row-fields" id="row-step" hidden>
+        <div class="field">
+          <label for="r-place">WHERE <span class="opt">&mdash; a code like JFK or WRK, or a name</span></label>
+          <input class="input" id="r-place" autocomplete="off" placeholder="JFK" />
+        </div>
+        <div class="row-pair">
+          <div class="field">
+            <label for="r-date">DATE</label>
+            <input class="input" id="r-date" type="date" />
+          </div>
+          <div class="field">
+            <label for="r-time">TIME</label>
+            <input class="input" id="r-time" type="time" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="r-verb">WHAT HAPPENS THERE</label>
+          <select class="input" id="r-verb">
+            <option>Pickup</option>
+            <option>Drop-off</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="r-where">DOOR <span class="opt">&mdash; optional</span></label>
+          <input class="input" id="r-where" autocomplete="off" placeholder="Terminal 4 arrivals" />
+        </div>
+      </div>
+      <p class="field-error" id="row-error"></p>
+      <p class="edit-note">Shown as yours, beside dispatch's rows and never mixed into them. It survives the
+      next sheet &mdash; and if dispatch adds it too, you'll be told.</p>
+      <button class="submit" type="submit">ADD</button>
+    </form>
+  </div>
+
+  <!-- ============ A ROW'S MENU (v68): one per passenger, one per stop ============ -->
+  <div class="sheet" id="row-menu" hidden role="dialog" aria-modal="true" aria-labelledby="row-menu-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="row-menu-title">Change</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="row-menu-close" type="button">CLOSE</button>
+    </div>
+    <div class="sheet-body menu-body">
+      <div id="row-menu-rows"></div>
+      <p class="seg-help menu-help" id="row-menu-note"></p>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS: a short menu; each row opens its own page ============ -->
+  <div class="sheet" id="settings-sheet" hidden role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="sheet-head">
+      <span class="sheet-title">Settings</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="settings-close" type="button">DONE</button>
+    </div>
+    <div class="sheet-body menu-body">
+      <div class="menu">
+        <button class="menu-row" id="messages-open" type="button">
+          <span class="menu-ico"><svg class="ico"><use href="#i-message-circle" /></svg></span>
+          <span class="menu-text"><span class="menu-title">Messages</span><span class="menu-sub" id="messages-value">&mdash;</span></span>
+          <svg class="ico chev"><use href="#i-chevron-right" /></svg>
+        </button>
+      </div>
+
+      <span class="eyebrow menu-eyebrow">ROUTES</span>
+      <div class="menu">
+        <button class="menu-row" id="maps-change" type="button">
+          <span class="menu-ico"><svg class="ico"><use href="#i-map" /></svg></span>
+          <span class="menu-text"><span class="menu-title">Maps</span><span class="menu-sub" id="maps-value">Asked the first time you open a route</span></span>
+          <svg class="ico chev"><use href="#i-chevron-right" /></svg>
+        </button>
+        <button class="menu-row" id="places-open" type="button">
+          <span class="menu-ico"><svg class="ico"><use href="#i-map-pin" /></svg></span>
+          <span class="menu-text"><span class="menu-title">Places</span><span class="menu-sub" id="places-value">&mdash;</span></span>
+          <span class="menu-badge" id="places-badge" hidden></span>
+          <svg class="ico chev"><use href="#i-chevron-right" /></svg>
+        </button>
+        <button class="menu-row" id="airlines-open" type="button">
+          <span class="menu-ico"><svg class="ico"><use href="#i-plane" /></svg></span>
+          <span class="menu-text"><span class="menu-title">Airlines</span><span class="menu-sub" id="airlines-value">&mdash;</span></span>
+          <span class="menu-badge" id="airlines-badge" hidden></span>
+          <svg class="ico chev"><use href="#i-chevron-right" /></svg>
+        </button>
+      </div>
+
+      <span class="eyebrow menu-eyebrow">YOUR LIST</span>
+      <div class="menu">
+        <button class="menu-row" id="list-open" type="button">
+          <span class="menu-ico"><svg class="ico"><use href="#i-key" /></svg></span>
+          <span class="menu-text"><span class="menu-title">List code and alerts</span><span class="menu-sub" id="list-value">Your code, flight alerts, another list</span></span>
+          <svg class="ico chev"><use href="#i-chevron-right" /></svg>
+        </button>
+        <button class="menu-row" id="keep-open" type="button">
+          <span class="menu-ico"><svg class="ico"><use href="#i-clock" /></svg></span>
+          <span class="menu-text"><span class="menu-title">Finished runs</span><span class="menu-sub" id="keep-value">&mdash;</span></span>
+          <svg class="ico chev"><use href="#i-chevron-right" /></svg>
+        </button>
+        <button class="menu-row" id="export-list" type="button">
+          <span class="menu-ico"><svg class="ico"><use href="#i-download" /></svg></span>
+          <span class="menu-text"><span class="menu-title">Save a copy</span><span class="menu-sub" id="export-value">Your runs, edits and settings, as a file</span></span>
+        </button>
+      </div>
+
+      <span class="eyebrow menu-eyebrow">THIS PHONE</span>
+      <div class="menu">
+        <div class="menu-row menu-static">
+          <span class="menu-text"><span class="menu-title">Theme</span></span>
+          <div class="seg menu-seg">
+            <button type="button" id="theme-auto" aria-pressed="true">AUTO</button>
+            <button type="button" id="theme-night" aria-pressed="false">NIGHT</button>
+            <button type="button" id="theme-day" aria-pressed="false">DAY</button>
+          </div>
+        </div>
+      </div>
+      <p class="seg-help menu-help" id="theme-help">Auto follows this phone&rsquo;s light or dark mode, with a dimmer late theme from 11p to 5a when it&rsquo;s dark.</p>
+
+      <span class="eyebrow menu-eyebrow">HELP</span>
+      <div class="menu">
+        <a class="menu-row" id="open-guide" href="/guide/">
+          <span class="menu-ico"><svg class="ico"><use href="#i-external-link" /></svg></span>
+          <span class="menu-text"><span class="menu-title">How Curbside works</span><span class="menu-sub">The guide</span></span>
+          <svg class="ico chev"><use href="#i-chevron-right" /></svg>
+        </a>
+        <button class="menu-row" id="open-feedback" type="button">
+          <span class="menu-ico"><svg class="ico"><use href="#i-message-square" /></svg></span>
+          <span class="menu-text"><span class="menu-title">Send feedback</span><span class="menu-sub">Something wrong or confusing?</span></span>
+          <svg class="ico chev"><use href="#i-chevron-right" /></svg>
+        </button>
+      </div>
+
+      <p class="menu-foot">Curbside <span class="version-val" id="set-version">&mdash;</span></p>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS > MESSAGES ============ -->
+  <div class="sheet" id="messages-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="messages-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="messages-title">Messages</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="messages-close" type="button">DONE</button>
+    </div>
+    <div class="sheet-body">
+      <p class="seg-help">One message per kind of trip, picked by the tag on dispatch&rsquo;s sheet
+      and filled in for each passenger. WhatsApp or Messages opens with it the evening before; on the day of the
+      run, with an empty chat. Kept on this phone.</p>
+      <div class="field">
+        <label for="my-name">YOUR NAME <span class="opt">(signs [MY NAME])</span></label>
+        <input class="input" id="my-name" type="text" autocomplete="name" autocapitalize="words" placeholder="As passengers know you">
+      </div>
+      <div class="set-group" id="msg-rows"></div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS > FINISHED RUNS ============ -->
+  <div class="sheet" id="keep-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="keep-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="keep-title">Finished runs</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="keep-close" type="button">DONE</button>
+    </div>
+    <div class="sheet-body">
+      <span class="eyebrow">KEEP THEM FOR</span>
+      <div class="seg" role="group" aria-label="Keep finished runs for">
+        <button type="button" data-keep="2" aria-pressed="false">2 DAYS</button>
+        <button type="button" data-keep="7" aria-pressed="true">7 DAYS</button>
+        <button type="button" data-keep="14" aria-pressed="false">14 DAYS</button>
+        <button type="button" data-keep="30" aria-pressed="false">30 DAYS</button>
+      </div>
+      <p class="seg-help">
+        A run moves to the archive 10 hours after it ends, and is deleted &mdash; with its
+        passengers, numbers and your edits &mdash; this long after. Set for the whole list.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS > YOUR LIST ============ -->
+  <div class="sheet" id="list-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="list-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="list-title">List code and alerts</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="list-close" type="button">DONE</button>
+    </div>
+    <div class="sheet-body">
+      <div class="set-group">
+        <div class="set-row first">
+          <span class="lbl">List code</span>
+          <span class="spacer"></span>
+          <span class="set-value code" id="set-code">&mdash;</span>
+          <button class="mini-btn" id="copy-code" type="button">
+            <svg class="ico ico-sm"><use href="#i-copy" /></svg>COPY
+          </button>
+        </div>
+        <div class="code-warn">
+          <svg><use href="#i-triangle-alert" /></svg>
+          <span>This code is the only way back to your list. Clearing browser data or losing it
+          means starting over &mdash; there is no recovery.</span>
+        </div>
+      </div>
+
+      <div class="set-group">
+        <span class="eyebrow set-eyebrow">FLIGHT ALERTS</span>
+        <!-- Alerts from Curbside itself, to this phone (v66): Web Push. -->
+        <div class="set-row">
+          <span class="lbl">Alerts on this phone</span>
+          <span class="spacer"></span>
+          <span class="set-value push-state" id="push-state">&mdash;</span>
+          <button class="mini-btn" id="push-toggle" type="button" hidden>TURN ON</button>
+        </div>
+        <p class="seg-help test-say" id="push-say" aria-live="polite"></p>
+        <div class="set-row">
+          <span class="lbl">Do alerts reach this phone?</span>
+          <span class="spacer"></span>
+          <button class="mini-btn" id="test-alert" type="button">SEND A TEST</button>
+        </div>
+        <p class="seg-help test-say" id="test-alert-say" aria-live="polite" hidden></p>
+        <div class="set-row">
+          <span class="lbl">Flight checks left</span>
+          <span class="spacer"></span>
+          <span class="set-value checks-left" id="checks-left">&mdash;</span>
+        </div>
+        <p class="seg-help test-say" id="checks-help">One free pool for every driver. When it runs low, only the
+        check before landing is made; when it runs out, times stay as last checked until it renews.</p>
+      </div>
+
+      <div class="set-group">
+        <span class="eyebrow set-eyebrow">THE OTHER WAY: THE NTFY APP</span>
+        <div class="set-row topic-row">
+          <span class="lbl">Notify topic</span>
+          <span class="spacer"></span>
+          <button class="mini-btn" id="copy-topic" type="button">
+            <svg class="ico ico-sm"><use href="#i-copy" /></svg>COPY
+          </button>
+          <a class="mini-btn" id="sub-topic" target="_blank" rel="noopener noreferrer">SUBSCRIBE</a>
+        </div>
+        <div class="set-value topic-val" id="set-topic">&mdash;</div>
+        <p class="seg-help">Every alert also goes to this topic on ntfy.sh, for a phone that has the ntfy app. Its
+        free service often turns Curbside&rsquo;s server away, so count on the alerts above.</p>
+      </div>
+
+      <div class="set-group">
+        <span class="eyebrow set-eyebrow">ANOTHER LIST</span>
+        <div class="set-row">
+          <span class="lbl">Use a different code</span>
+          <span class="spacer"></span>
+          <button class="mini-btn" id="switch-code" type="button" aria-expanded="false" aria-controls="switch-form">SWITCH</button>
+        </div>
+        <!-- Another list's code, typed here: no browser pop-up (v62.1). -->
+        <form class="switch-form" id="switch-form" hidden novalidate>
+          <div class="field">
+            <label for="switch-input">THE OTHER LIST&rsquo;S CODE</label>
+            <input class="input" id="switch-input" placeholder="a1b2c3d4" autocomplete="off"
+                   autocapitalize="off" spellcheck="false" />
+          </div>
+          <p class="seg-help">This phone moves to that list. Keep this list&rsquo;s code (above) to come back to it.</p>
+          <p class="field-error" id="switch-error"></p>
+          <div class="switch-acts">
+            <button class="mini-btn" id="switch-cancel" type="button">CANCEL</button>
+            <button class="submit" id="switch-go" type="submit">SWITCH TO THIS LIST</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS > MESSAGES > one message ============ -->
+  <div class="sheet" id="message-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="message-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="message-title">Message</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="message-close" type="button">DONE</button>
+    </div>
+    <div class="sheet-body">
+      <p class="seg-help" id="message-help"></p>
+      <div class="field">
+        <label for="message-text">YOUR MESSAGE</label>
+        <textarea class="input message-text" id="message-text" rows="10" autocapitalize="sentences"></textarea>
+      </div>
+      <div class="field">
+        <span class="eyebrow">TAP TO ADD WHERE THE CURSOR IS</span>
+        <div class="msg-fields" id="message-fields"></div>
+      </div>
+      <div class="msg-preview-head">
+        <span class="eyebrow">HOW IT READS</span>
+        <span class="spacer"></span>
+        <button class="daystep" type="button" id="message-prev" aria-label="Previous passenger"><svg class="ico ico-sm"><use href="#i-chevron-left" /></svg></button>
+        <button class="daystep" type="button" id="message-next" aria-label="Next passenger"><svg class="ico ico-sm"><use href="#i-chevron-right" /></svg></button>
+      </div>
+      <div class="msg-who" id="message-who"></div>
+      <div class="msg-preview" id="message-preview"></div>
+      <div class="msg-foot">
+        <span>Kept on this phone. WhatsApp or Messages opens with it; you send it.</span>
+        <span style="flex:1"></span>
+        <button class="mini-btn" id="message-reset" type="button">RESET</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LEG SHEET: a timed notes line, the driver's beside dispatch's ============ -->
+  <div class="sheet" id="leg-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="leg-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="leg-title">Leg</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="leg-cancel" type="button">CANCEL</button>
+    </div>
+    <form class="sheet-body" id="leg-form">
+      <div class="field">
+        <label for="leg-time">TIME</label>
+        <input class="input mono-input" type="time" id="leg-time" />
+      </div>
+      <div class="field">
+        <label for="leg-what">WHAT</label>
+        <textarea class="input" id="leg-what" rows="3" autocapitalize="sentences"></textarea>
+      </div>
+      <p class="edit-doc" id="leg-doc"></p>
+      <p class="field-error" id="leg-error"></p>
+      <button class="submit" id="leg-save" type="submit">SAVE</button>
+      <div class="leg-acts">
+        <button class="mini-btn" id="leg-dispatch" type="button">USE DISPATCH&rsquo;S</button>
+        <span class="spacer"></span>
+        <button class="mini-btn" id="leg-off" type="button">NOT HAPPENING</button>
+      </div>
+      <p class="edit-note" id="leg-note"></p>
+    </form>
+  </div>
+
+  <!-- ============ ROUTE SHEET: the stops Maps gets, and which Maps ============ -->
+  <div class="sheet" id="route-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="route-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="route-title">Route in Maps</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="route-cancel" type="button">CLOSE</button>
+    </div>
+    <div class="sheet-body">
+      <div id="route-list"></div>
+      <div class="route-open" id="route-open">
+        <div class="seg" id="route-scope" role="group" aria-label="What Maps gets">
+          <button type="button" data-scope="all" aria-pressed="true">ALL STOPS</button>
+          <button type="button" data-scope="next" aria-pressed="false">NEXT STOP ONLY</button>
+        </div>
+        <span class="eyebrow" id="route-in">OPEN IN</span>
+        <div class="maps-pick">
+          <button type="button" data-maps="apple" aria-pressed="false">APPLE MAPS</button>
+          <button type="button" data-maps="google" aria-pressed="false">GOOGLE MAPS</button>
+        </div>
+        <label class="check-row"><input type="checkbox" id="route-direct" />
+          <span id="route-direct-label">Don&rsquo;t show the stops again: go straight to Maps</span></label>
+        <p class="seg-help" id="route-help"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PLACES: the list's own, and the sheets' ============ -->
+  <div class="sheet" id="places-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="places-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="places-title">Places</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="places-close" type="button">DONE</button>
+    </div>
+    <div class="sheet-body">
+      <p class="seg-help">Where the codes in dispatch&rsquo;s notes are, for the route in Maps. Codes a sheet prints
+      with an address are known already; the ones only the notes use, add once. <span id="places-who">Shared by every phone on this list.</span></p>
+      <div id="places-suggested"></div>
+      <span class="eyebrow set-eyebrow">YOURS</span>
+      <div id="places-yours"></div>
+      <button class="addrow addplace" type="button" id="place-add">+ ADD A PLACE</button>
+      <div id="places-shared"></div>
+      <span class="eyebrow set-eyebrow">FROM DISPATCH&rsquo;S SHEETS</span>
+      <div id="places-sheets"></div>
+    </div>
+  </div>
+
+  <!-- ============ AIRLINES: codes the list learned from a fix ============ -->
+  <div class="sheet" id="airlines-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="airlines-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="airlines-title">Airlines</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="airlines-close" type="button">DONE</button>
+    </div>
+    <div class="sheet-body">
+      <p class="seg-help">Airlines a sheet named that I had no code for, learned when you fixed one of their flights.
+      Later sheets that name them get their flights filled in, marked LEARNED. <span id="airlines-who">Shared by every phone on this list.</span></p>
+      <div id="airlines-suggested"></div>
+      <div id="airlines-list"></div>
+    </div>
+  </div>
+
+  <div class="sheet" id="place-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="place-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="place-title">Add a place</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="place-cancel" type="button">CANCEL</button>
+    </div>
+    <form class="sheet-body" id="place-form">
+      <div class="field">
+        <label for="place-code">CODE <span class="opt">(as the notes print it)</span></label>
+        <input class="input place-code" id="place-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8" />
+      </div>
+      <div class="field">
+        <label for="place-name">NAME <span class="opt">(optional)</span></label>
+        <input class="input" id="place-name" autocomplete="off" autocapitalize="words" maxlength="80" />
+      </div>
+      <div class="field">
+        <label for="place-address">ADDRESS</label>
+        <textarea class="input" id="place-address" rows="2" autocomplete="off" autocapitalize="words" maxlength="200"></textarea>
+      </div>
+      <p class="edit-doc" id="place-doc"></p>
+      <p class="field-error" id="place-error"></p>
+      <button class="submit" id="place-save" type="submit">SAVE PLACE</button>
+      <button class="mini-btn place-remove" id="place-remove" type="button" hidden>REMOVE</button>
+    </form>
+  </div>
+
+  <div class="sheet" id="feedback-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+    <div class="sheet-head">
+      <span class="sheet-title" id="feedback-title">Feedback</span>
+      <span class="spacer"></span>
+      <button class="text-btn" id="feedback-close" type="button">CANCEL</button>
+    </div>
+    <form class="sheet-body" id="feedback-form" novalidate>
+      <div class="field">
+        <label for="feedback-text">WHAT HAPPENED?</label>
+        <textarea class="input feedback-text" id="feedback-text" rows="7" maxlength="2000"
+                  placeholder="What you tapped, what you expected, what you saw instead. Or what you'd change."></textarea>
+        <div class="feedback-meta">
+          <span id="feedback-version"></span>
+          <span class="spacer"></span>
+          <span class="mono" id="feedback-count">0 / 2000</span>
+        </div>
+        <p class="field-error" id="feedback-error" role="alert"></p>
+      </div>
+      <p class="edit-note">Goes to the app's owner with the app version. Your list code isn't sent.
+      Leave out passengers' names and phone numbers.</p>
+      <button class="submit" id="feedback-send" type="submit">SEND FEEDBACK</button>
+    </form>
+    <div class="sheet-body feedback-sent" id="feedback-sent" hidden>
+      <span class="sent-mark"><svg class="ico"><use href="#i-check" /></svg></span>
+      <h2>Sent. Thank you.</h2>
+      <p class="welcome-note">The owner reads every note. Send another whenever something comes up.</p>
+      <button class="submit" id="feedback-done" type="button">DONE</button>
+    </div>
+  </div>
+
+  <script src="/motion.js"></script>
+  <script src="/messages.js"></script>
+  <script src="/assignments.js"></script>
+  <script src="/import.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

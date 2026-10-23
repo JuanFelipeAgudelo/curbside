@@ -1,0 +1,10 @@
+spike/pdfs/
+spike/*.json
+node_modules/
+.wrangler/
+.dev.vars
+*.log
+__pycache__/
+curbside-preview.local.html
+*.local.html
+tools/travel_times.local.json

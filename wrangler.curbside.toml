@@ -1,0 +1,15 @@
+# The Curbside app itself: public/ served as static assets, nothing else.
+# Cloudflare folded Pages into Workers, so this is a Worker with no script,
+# no KV and no cron. The API is worker/ (flightwatch-worker); keep them apart.
+# `crons = []` is explicit: it clears a schedule rather than leaving one.
+#
+#   cd worker && npx wrangler deploy --config ../wrangler.curbside.toml
+name = "curbside"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[assets]
+directory = "./public"
+
+[triggers]
+crons = []

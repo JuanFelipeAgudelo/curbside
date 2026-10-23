@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Curbside guide</title>
+  <meta name="description" content="How to set up Curbside, import dispatch's sheet and read a run." />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#0E1B30" />
+  <script>
+    // The app's theme, before the first paint: the same rule as index.html.
+    (function () {
+      var mode = null;
+      try { mode = localStorage.getItem("fw_theme"); } catch (e) { /* private mode */ }
+      var d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+      var t = mode === "day" || mode === "night" ? mode
+            : h >= 6.5 && h < 19.5 ? "day" : h >= 23 || h < 5 ? "late" : "night";
+      if (t !== "night") document.documentElement.setAttribute("data-theme", t);
+      document.querySelector('meta[name="theme-color"]').setAttribute("content",
+        t === "day" ? "#EFECE4" : t === "late" ? "#070B14" : "#0E1B30");
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* The app's tokens (index.html), only the ones this page uses. */
+    :root {
+      color-scheme: dark;
+      --page: #0E1B30; --panel: #16294A; --hairline: #1E3252; --hairline-strong: #2E4571;
+      --warn-strip: #251E14; --ink: #F4F1EA; --ink-2: #8FA1C0; --ink-warn: #D8C9A8;
+      --brass: #E8A33D; --brass-fill: #E8A33D; --moved: #7CC7F2; --gb: #C4A3F5;
+      --ok: #4FC38A; --alert-text: #FF7A62; --gutter: 16px;
+    }
+    [data-theme="day"] {
+      color-scheme: light;
+      --page: #EFECE4; --panel: #FFFFFF; --hairline: #DBD6C9; --hairline-strong: #C3BCAA;
+      --warn-strip: #FBF3E3; --ink: #101E36; --ink-2: #56647C; --ink-warn: #6B4E17;
+      --brass: #8A5A06; --brass-fill: #E8A33D; --moved: #0B6694; --gb: #6A3FB0;
+      --ok: #1A6E47; --alert-text: #B4321C;
+    }
+    [data-theme="late"] {
+      --page: #070B14; --panel: #0D1422; --hairline: #162036; --hairline-strong: #22304A;
+      --warn-strip: #15120C; --ink: #CFC8BA; --ink-2: #7D8AA0; --ink-warn: #BFB294;
+      --brass: #C98A2E; --brass-fill: #C98A2E; --moved: #5FA9D0; --gb: #A68AD6;
+      --ok: #3FA774; --alert-text: #E0634D;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--page); color: var(--ink);
+      font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    .page { max-width: 560px; margin: 0 auto; padding: env(safe-area-inset-top, 0px) 0 calc(48px + env(safe-area-inset-bottom, 0px)); }
+    .chrome {
+      height: 43px; display: flex; align-items: center; gap: 12px; padding: 0 var(--gutter);
+      border-bottom: 1px solid var(--hairline);
+    }
+    .wordmark { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+    .wordmark::before { content: ""; width: 16px; height: 4px; border-radius: 2px; background: var(--brass-fill); }
+    .spacer { flex: 1; }
+    .back {
+      display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); text-decoration: none;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    }
+    .back:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    main { padding: 0 var(--gutter); }
+    h1 { margin: 26px 0 8px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+    .lede { margin: 0 0 6px; font-size: 14px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty; }
+    .toc { display: flex; flex-wrap: wrap; gap: 10px 6px; margin: 16px 0 4px; padding: 0; list-style: none; }
+    /* 44px to tap, the look unchanged (the app's own rule, index.html "hit areas"). */
+    .toc a, footer a { position: relative; }
+    .toc a::before, footer a::before {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
+    }
+    .toc a {
+      display: inline-block; padding: 7px 11px; border: 1px solid var(--hairline-strong); border-radius: 6px;
+      color: var(--ink-2); text-decoration: none; font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    }
+    section { padding: 22px 0 6px; border-top: 1px solid var(--hairline); margin-top: 22px; scroll-margin-top: 8px; }
+    .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-2); }
+    h2 { margin: 6px 0 10px; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+    h3 { margin: 16px 0 6px; font-size: 14px; font-weight: 700; }
+    p, li { font-size: 14px; line-height: 1.6; text-wrap: pretty; }
+    p { margin: 0 0 10px; }
+    ol, ul { margin: 0 0 10px; padding-left: 22px; }
+    li { margin-bottom: 4px; }
+    li::marker { color: var(--ink-2); }
+    b { font-weight: 600; }
+    .caps { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .muted { color: var(--ink-2); }
+    .note {
+      display: flex; gap: 10px; align-items: flex-start; background: var(--warn-strip); border-radius: 10px;
+      padding: 12px; margin: 12px 0; font-size: 13px; line-height: 1.55; color: var(--ink-warn);
+    }
+    .note svg { flex: none; width: 15px; height: 15px; margin-top: 2px; fill: none; stroke: currentColor;
+                stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .ico { display: inline-block; width: 16px; height: 16px; vertical-align: -3px; fill: none; stroke: currentColor;
+           stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+    .card { background: var(--panel); border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; margin: 12px 0; }
+    .row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-top: 1px solid var(--hairline); }
+    .row:first-child { border-top: 0; }
+    .row p { margin: 0; font-size: 13.5px; line-height: 1.5; }
+    .row .what { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .swatch { flex: none; width: 14px; height: 14px; border-radius: 50%; margin-top: 3px; }
+    .clock { flex: none; min-width: 94px; }
+    .clock .caps { display: block; color: var(--ink-2); font-size: 11px; }
+    .clock .mono { font-size: 17px; }
+    footer { padding: 26px var(--gutter) 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+    footer a { color: var(--ink); font-weight: 600; }
+
+    /* Light / dark: the app's own setting (fw_theme), so Settings agrees. */
+    .theme-btn {
+      width: 44px; height: 44px; margin-right: -10px; display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink-2);
+    }
+    .theme-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75;
+                     stroke-linecap: round; stroke-linejoin: round; }
+    .theme-btn .moon { display: none; }
+    [data-theme="day"] .theme-btn .sun { display: none; }
+    [data-theme="day"] .theme-btn .moon { display: inline; }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M9 15h6" /><path d="M12 18v-6" /></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></symbol>
+    <symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
+  </defs></svg>
+
+  <div class="page">
+    <header class="chrome">
+      <span class="wordmark">curbside</span>
+      <span class="spacer"></span>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="Switch to light mode">
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
+      </button>
+      <a class="back" href="/">BACK TO THE APP</a>
+    </header>
+
+    <main>
+      <h1>How Curbside works</h1>
+      <p class="lede">Curbside turns dispatch's assignment PDF into your run: every stop, every
+      passenger, and their flights, checked while you drive. It never changes dispatch's plan.
+      When a flight moves, it shows what that means beside dispatch's own times.</p>
+      <ul class="toc">
+        <li><a href="#install">INSTALL</a></li>
+        <li><a href="#code">YOUR CODE</a></li>
+        <li><a href="#import">IMPORT A SHEET</a></li>
+        <li><a href="#read">READ A RUN</a></li>
+        <li><a href="#shuttles">SHUTTLES</a></li>
+        <li><a href="#route">ROUTE IN MAPS</a></li>
+        <li><a href="#checks">FLIGHT CHECKS</a></li>
+        <li><a href="#feedback">FEEDBACK</a></li>
+      </ul>
+
+      <section id="install">
+        <span class="eyebrow">1 · ONCE</span>
+        <h2>Put it on your Home Screen</h2>
+        <h3>iPhone</h3>
+        <ol>
+          <li>Open this address in <b>Safari</b> (not another browser).</li>
+          <li>Tap the <b>Share</b> button, then <b>Add to Home Screen</b>.</li>
+          <li>From then on, open Curbside <b>from its icon</b>.</li>
+        </ol>
+        <h3>Android</h3>
+        <ol>
+          <li>Open this address in <b>Chrome</b>.</li>
+          <li>Tap the <b>&#8942;</b> menu, then <b>Install app</b> (or <b>Add to Home screen</b>).</li>
+        </ol>
+        <div class="note">
+          <svg><use href="#i-triangle-alert" /></svg>
+          <span>On an iPhone, the icon and a Safari tab keep separate data. Set up your list in the app
+          you opened from the icon, and use that one.</span>
+        </div>
+      </section>
+
+      <section id="code">
+        <span class="eyebrow">2 · ONCE</span>
+        <h2>Save your list code</h2>
+        <p>Tap <span class="caps">START A NEW LIST</span>. Curbside gives you a list code of eight letters and
+        numbers. There are no accounts and no passwords: <b>the code is your list</b>, and it is the only way
+        back to it on a new phone or after this one's data is cleared.</p>
+        <ul>
+          <li>Save it right away: <span class="caps">SHARE</span> it to your notes or text it to yourself, or
+          <span class="caps">COPY</span> it. Then tap <span class="caps">SAVED</span>.</li>
+          <li>Settings (<svg class="ico" aria-hidden="true"><use href="#i-settings" /></svg>) shows it any time.</li>
+          <li>On another phone, choose <span class="caps">USE THIS CODE</span> and type it in. Both phones then
+          show the same list.</li>
+        </ul>
+        <div class="note">
+          <svg><use href="#i-triangle-alert" /></svg>
+          <span>Lose the code and the list is gone: nobody can look it up for you. Don't share it with anyone
+          who shouldn't see your runs.</span>
+        </div>
+      </section>
+
+      <section id="import">
+        <span class="eyebrow">3 · EVERY SHEET</span>
+        <h2>Import dispatch's sheet</h2>
+        <h3>iPhone (Outlook)</h3>
+        <ol>
+          <li>Open dispatch's email and tap the PDF.</li>
+          <li>Tap <b>Share</b>, then <b>Save to Files</b>, and save it.</li>
+          <li>In Curbside, tap the file icon at the top (<svg class="ico" aria-hidden="true"><use href="#i-file-plus" /></svg>)
+          and pick the PDF.</li>
+        </ol>
+        <h3>Android</h3>
+        <ol>
+          <li>Open the PDF from the email, tap <b>Share</b>, then <b>Curbside</b>.</li>
+          <li>Or save it, then tap the file icon (<svg class="ico" aria-hidden="true"><use href="#i-file-plus" /></svg>) in Curbside.</li>
+        </ol>
+        <h3>Laptop</h3>
+        <p>Open the same address and drop the PDF anywhere on the page.</p>
+        <p class="muted">The sheet is read on your phone. A line under the header says what each file did:
+        a new run, an update, or why a file couldn't be read. Several at once is fine, and with no signal they
+        wait and go when it's back.</p>
+        <p class="muted">When dispatch re-sends a run, import the new sheet: the newest printed copy replaces
+        the older one, and your own corrections stay. The line says how many things dispatch changed, or
+        <b>Reprinted</b> when a sheet was only printed again. The run's card says <span class="caps">UPDATED</span>
+        and the run lists <span class="caps">WHAT DISPATCH CHANGED</span> until someone on your list taps
+        <span class="caps">OK</span>.</p>
+      </section>
+
+      <section id="read">
+        <span class="eyebrow">4 · ON THE ROAD</span>
+        <h2>Read a run</h2>
+        <h3>One meaning per colour</h3>
+        <div class="card">
+          <div class="row"><span class="swatch" style="background:var(--brass-fill)"></span>
+            <div><p class="what">Brass: here</p><p class="muted">The stop or leg you're on now, and nothing else.</p></div></div>
+          <div class="row"><span class="swatch" style="background:var(--moved)"></span>
+            <div><p class="what">Blue: a time moved</p><p class="muted">A flight is running early or late against its schedule.</p></div></div>
+          <div class="row"><span class="swatch" style="background:var(--alert-text)"></span>
+            <div><p class="what">Red: a problem</p><p class="muted">Something to check: a flight change that moves your clocks, a number missing from the sheet, or a new sheet that disagrees with your correction.</p></div></div>
+          <div class="row"><span class="swatch" style="background:var(--ok)"></span>
+            <div><p class="what">Green: done</p><p class="muted">A stop that's behind you, a leg you've ticked, and a passenger you've ticked as messaged.</p></div></div>
+          <div class="row"><span class="swatch" style="background:var(--gb)"></span>
+            <div><p class="what">Violet: Governing Body</p><p class="muted">A GB passenger: double the margin, and louder alerts.</p></div></div>
+        </div>
+
+        <h3>Two clocks at every airport stop</h3>
+        <div class="card">
+          <div class="row">
+            <div class="clock"><span class="caps">PARKED AT</span><span class="mono">10:45p</span></div>
+            <p>Be in the lot before the <b>first</b> flight lands: 15 minutes before touchdown, 30 for a GB
+            passenger. For a drop-off, it's the check-in deadline: 2 hours before a domestic departure,
+            3 hours international.</p>
+          </div>
+          <div class="row">
+            <div class="clock"><span class="caps">LEAVING</span><span class="mono">11:45p</span></div>
+            <p>When you can expect to leave with the <b>last</b> passenger: 45 minutes after landing on a
+            domestic flight, 1 hour 45 international (bags and customs).</p>
+          </div>
+        </div>
+        <p class="muted">Both follow each flight's latest estimate. Dispatch's own times stay on the stop,
+        beside them.</p>
+
+        <h3>Your corrections</h3>
+        <p>Tap a flight number, a door or a time to correct it. The three dots on a passenger's card open the rest for
+        that passenger: their phone number, their greeting, not coming. <span class="caps">CHANGE THIS STOP</span>, at a
+        stop's foot, adds a passenger dispatch phoned in or says the stop isn't happening.
+        Your value is marked as yours and dispatch's stays visible. A passenger who isn't coming stays on the run, greyed out, with an
+        <span class="caps">UNDO</span> that never runs out.</p>
+        <p>What Curbside couldn't read from a sheet is listed at the foot of the run. A flight it couldn't name, like an
+        airline it has no code for, has <span class="caps">FIX</span>: type the flight (WS1680) and, unless you untick
+        it, your list remembers the airline's code. Later sheets that name that airline get their flights filled in,
+        marked <span class="caps">LEARNED</span>; tap one to change it for that passenger. Settings &rarr;
+        Airlines lists what your list learned, to forget one, and the ones every driver has.</p>
+
+        <h3>When dispatch re-sends a run</h3>
+        <p>What dispatch changed since the copy your list last OK'd is marked where it happened: the old time,
+        vehicle, door or flight struck beside or under the new one, <span class="caps">NEW</span> on a stop,
+        passenger or leg the older sheet didn't have, and what the new sheet dropped left where it was, dashed and
+        struck: <span class="caps">NOT ON THE NEW SHEET</span>. A passenger dispatch moved says
+        <span class="caps">MOVED HERE</span> and where they were.</p>
+        <p class="muted">After <span class="caps">OK</span> the marks stay on the stops until dispatch's next change.
+        Where you'd set your own value, yours stands: the list says what dispatch changed, and the stop asks you to
+        keep yours or use the sheet.</p>
+
+        <h3>Messaging passengers</h3>
+        <p><span class="caps">MESSAGES FOR &hellip;</span> on the list is everyone you collect on your next day of runs.
+        <span class="caps">WHATSAPP</span> and <span class="caps">TEXT</span> open a draft of your own message, filled in
+        for that passenger. On a run, each passenger's card has the same two beside their number, as
+        <span class="caps">WA</span> and <span class="caps">TEXT</span>. Write yours in Settings &rarr; Messages: one per kind of trip (the tag on
+        dispatch's sheet picks it), and your name to sign it. For someone travelling alone, Curbside asks once whether
+        it's Brother, Sister or just the name.</p>
+        <p>[FROM] and [TO] are places a passenger knows: Warwick, Fishkill, Patterson, or the airport. [DOOR] is where
+        you'll wait at the pickup, as dispatch printed it: A-res WRK, Baggage Claim.</p>
+        <p class="muted">A bracket left in the draft, like [FLIGHT], means the sheet didn't say: fill it in before you
+        send. On the day of the run the chat opens empty. Curbside never sends anything, you do, so tick each passenger
+        off yourself.</p>
+        <p>If a passenger's plan changes after you ticked them (dispatch re-sent the sheet, or you corrected a time,
+        a door or a number), they count as left again: <span class="caps">MESSAGED 6:12p &middot; CHANGED SINCE</span>
+        in red, with what changed and what it was. Their draft now starts with "Update:". Send it, then tick them
+        again. A flight running late doesn't do this: only the plan does. Someone a re-sent sheet added is marked
+        <span class="caps">NEW</span> until you tick them.</p>
+
+        <h3>Staying up to date</h3>
+        <p>While Curbside is open it asks your list every minute whether anything changed: a sheet imported on
+        another phone, a correction, a flight check. A change shows within a minute or two, without pulling down.</p>
+        <p>On the list of runs, a run's card says when one of its flights is off schedule
+        (<span class="caps">UA1503 26M LATE</span>, in blue) and how many passengers you messaged before their plan
+        changed (<span class="caps">1 TO MESSAGE AGAIN</span>).</p>
+
+        <h3>Flight alerts on your phone</h3>
+        <p>Settings &rarr; List code and alerts &rarr; Alerts on this phone &rarr; <span class="caps">TURN ON</span>,
+        and say yes when the phone asks. From then on Curbside itself buzzes this phone when a flight moves: what to
+        do first, then the flight and your new times beside dispatch's. No other app is needed. On an iPhone it
+        works in the app opened from its Home Screen icon, not in Safari. Each phone turns its own on.</p>
+        <p><span class="caps">SEND A TEST</span> sends one alert the same way and says whether it went to this
+        phone, so you know before a real delay has to prove it. Nothing arrives? Check that the phone lets Curbside
+        send notifications (the phone's Settings, Notifications, Curbside). If alerts ever stop on this phone, the
+        list of runs says so at the top.</p>
+        <p class="muted">Used the ntfy app before? It is still sent every alert, but its free service often turns
+        Curbside away. Once alerts are on here you can unsubscribe there, or you may get some twice. The same page
+        says how many flight checks are left this month; every driver shares them.</p>
+        <p class="muted">Settings &rarr; Save a copy gives you a file of your runs, edits and settings: your own backup.
+        It never holds your list code; keep that apart.</p>
+
+        <h3>Removing a run from this phone</h3>
+        <p>At the bottom of a run, <span class="caps">REMOVE FROM THIS PHONE</span> takes it off your list of runs,
+        your messages and your route. It leaves a dashed line where the run was, with <span class="caps">UNDO</span>,
+        until the run is cleaned up with the other finished ones. Importing its sheet again also brings it back.</p>
+        <p class="muted">Only this phone: the run stays on the list for anyone else who uses your list code, and
+        its flight alerts still arrive.</p>
+      </section>
+
+      <section id="shuttles">
+        <span class="eyebrow">5 · SHUTTLES AND DUTIES</span>
+        <h2>Windows and their legs</h2>
+        <p>A stop dispatch prints with no address and nobody to carry, like a shuttle, Dispatch or Floater, is a
+        <b>window</b>: a dashed band with dispatch's label and hours. The timed lines in dispatch's notes are its
+        <b>legs</b>, each with its time and a box to tick.</p>
+        <ul>
+          <li><span class="caps">RIGHT NOW</span> reads the leg you're on, from its time until the next leg's time or
+          your tick. Curbside never ticks one for you.</li>
+          <li>A starred time, like <span class="mono">9:50*</span>, stays as dispatch printed it: what it hangs on is
+          yours to judge.</li>
+          <li>Tap a leg's words to fix its time or words. Yours shows beside dispatch's, and
+          <span class="caps">USE DISPATCH&rsquo;S</span> puts it back. <span class="caps">NOT HAPPENING</span> there
+          greys the leg out, with an <span class="caps">UNDO</span>; the one under the legs is for the whole window.</li>
+          <li><span class="caps">+ ADD A LEG</span> for one dispatch phoned in. It's marked as yours.</li>
+        </ul>
+        <p class="muted">Timed lines under an ordinary stop work the same way. Your fixes reach every phone on your
+        list; ticks stay on this one.</p>
+      </section>
+
+      <section id="route">
+        <span class="eyebrow">6 · ANY RUN</span>
+        <h2>The route in Maps</h2>
+        <p><span class="caps">ROUTE IN MAPS</span>, under <span class="caps">RIGHT NOW</span>, shows every stop still
+        ahead, in dispatch's order, starting from where you are. Change it there before it goes to Maps:</p>
+        <ul>
+          <li>The arrows move a stop up or down; the cross leaves it out (<span class="caps">ADD BACK</span> returns it).</li>
+          <li><span class="caps">+ ADD A STOP</span> adds one of your places, a sheet's or an airport.</li>
+          <li><span class="caps">CHANGE</span> beside the start starts somewhere other than where you are.</li>
+          <li><span class="caps">NEXT STOP ONLY</span> sends just the next one.</li>
+        </ul>
+        <p>Then <span class="caps">APPLE MAPS</span> or <span class="caps">GOOGLE MAPS</span>. Your order is kept on this
+        phone for that run until it ends, marked <span class="caps">YOURS</span>; <span class="caps">DISPATCH&rsquo;S
+        ORDER</span> puts it back. The run itself keeps dispatch's order. Tick "go straight to Maps" to skip the stops
+        next time; Settings &rarr; Maps turns it off again. On a shuttle, the stops
+        are the places its legs name, from the leg you're on.</p>
+        <p class="muted">When the car's space says where it waits, the route starts there until the run is under way: a
+        space starting <span class="mono">FKL-NBD</span> is at NCA, and the first stop says "collect at NCA". Google Maps
+        takes 10 stops at a time. Pick Google only if its app is on the phone: in a browser, Google takes just a few
+        stops (<span class="caps">NEXT STOP ONLY</span> always works).</p>
+        <h3>Places</h3>
+        <p>Maps needs an address for every code. Codes a sheet prints with an address are known already. A code only the
+        notes use says, for example, <span class="caps">NTH NEEDS AN ADDRESS</span>: <span class="caps">ADD</span> it
+        beside the stop (and a name, if you like), or leave that stop out.</p>
+        <ul>
+          <li>All of them are in Settings &rarr; Places: <span class="caps">YOURS</span>,
+          <span class="caps">FOR EVERY DRIVER</span>, then <span class="caps">FROM DISPATCH&rsquo;S SHEETS</span>.</li>
+          <li><span class="caps">FOR EVERY DRIVER</span> are the common ones, already set for you. The same goes for
+          airlines in Settings &rarr; Airlines.</li>
+          <li><span class="caps">EDIT</span> one of those, or one from a sheet, to use your own address instead.</li>
+          <li>Your places belong to your list: every phone on it shares them, so each one is added once.</li>
+        </ul>
+        <p class="muted">A place you add or an airline you teach is also sent to the person who looks after Curbside
+        (the code, name and address, not who you are or any passenger), so a place everyone needs can be set once
+        for every driver.</p>
+      </section>
+
+      <section id="checks">
+        <span class="eyebrow">7 · ON THE FREE PLAN</span>
+        <h2>Flight checks</h2>
+        <p>Curbside runs on a free flight-data plan with a small monthly allowance, so it checks each flight a
+        few times instead of all the time:</p>
+        <ul>
+          <li>an <b>arrival</b>: 3 hours and 45 minutes before landing, and 15 minutes after;</li>
+          <li>a <b>departure</b>: once, 3 hours before.</li>
+        </ul>
+        <p>When the month's allowance runs low you'll see <b>&ldquo;Flight checks running low&rdquo;</b>:
+        only the check before landing still runs. When it's used up, <b>&ldquo;Flight checks paused
+        until&nbsp;&hellip;&rdquo;</b>: times are the last check's, or as printed. Confirm a flight on the
+        airline's app or the airport's board before you rely on it.</p>
+      </section>
+
+      <section id="feedback">
+        <span class="eyebrow">8 · ANY TIME</span>
+        <h2>Tell us what broke</h2>
+        <p>Settings (<svg class="ico" aria-hidden="true"><use href="#i-settings" /></svg>) &rarr;
+        <span class="caps">SEND FEEDBACK</span>. Anything helps: something wrong, something confusing, something
+        you wish it did. The most useful notes say what you tapped, what you expected, and what you saw.</p>
+        <p class="muted">Your note goes to the app's owner with the app version, never your list code. Please
+        leave out passengers' names and phone numbers.</p>
+      </section>
+    </main>
+
+    <footer>Curbside is in testing. <a href="/">Back to the app</a></footer>
+  </div>
+  <script>
+    /* Light / dark. Writes the app's own fw_theme ("day" / "night"), the same
+       choice as Settings' DAY / NIGHT; AUTO stays in the app's Settings. */
+    (function () {
+      var btn = document.getElementById("theme-btn");
+      var COLOR = { day: "#EFECE4", night: "#0E1B30", late: "#070B14" };
+      function current() { return document.documentElement.getAttribute("data-theme") || "night"; }
+      function label() {
+        btn.setAttribute("aria-label", current() === "day" ? "Switch to dark mode" : "Switch to light mode");
+      }
+      btn.addEventListener("click", function () {
+        var next = current() === "day" ? "night" : "day";
+        if (next === "night") document.documentElement.removeAttribute("data-theme");
+        else document.documentElement.setAttribute("data-theme", next);
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", COLOR[next]);
+        try { localStorage.setItem("fw_theme", next); } catch (e) { /* this visit only */ }
+        // The demo phone is the app itself: it follows, the way Settings would.
+        var demo = document.getElementById("demo");
+        try { if (demo && demo.contentWindow.setThemeMode) demo.contentWindow.setThemeMode(next); } catch (e) { /* not loaded */ }
+        label();
+      });
+      label();
+    })();
+  </script>
+</body>
+</html>

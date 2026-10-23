@@ -1,0 +1,232 @@
+{
+ "number": "334184",
+ "start": "2026-05-06 08:00",
+ "end": "2026-05-06 09:50",
+ "driver": "Jonas, Nils",
+ "vehicle": "Branch (72492) 2023 Mercedes Benz",
+ "parking": "WRK-RPG-BSMNT-073",
+ "originCode": "WRK",
+ "driverNotes": "Please follow times:\n7:45a Load Mail for ALL Sites check cabinets for Mail & WRK Lobby for Rushes\n7:50a Call Dispatch & Load Passengers\n8:00a Depart WRK Lobby for HUB\n8:15a Depart TUX Lobby (only if passengers)\n--\n8:50a Exchange Mail check HUB Lobby for Rushes\n8:55a Call Dispatch & Load Passengers\n9:00a Depart from HUB for Home\n9:45a Drop-Off TUX Passengers\n9:55a Drop-Off WRK Passengers\n10:00a Put Mail in INCOMING CABINET Bring Rushes labeled \u201cLobby\u201d to WRK Lobby\n10:00a Wash & Fuel",
+ "assistants": [
+  {
+   "name": "Vargas, Mara",
+   "role": "Other",
+   "note": "Trainee"
+  }
+ ],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": null,
+   "etd": "8:00 AM",
+   "date": "2026-05-06",
+   "etaDate": "2026-05-06",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Vargas, Kira",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Warwick > Patterson                                 0"
+      },
+      {
+       "name": "Brennan, Kira",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Warwick > Patterson                                 0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "TUX",
+   "place": "Tuxedo Property",
+   "address": "1422 Long Meadow Road Tuxedo Park , NY 10987",
+   "eta": "8:10 AM",
+   "etd": "8:10 AM",
+   "date": "2026-05-06",
+   "etaDate": "2026-05-06",
+   "actions": []
+  },
+  {
+   "code": "NCB",
+   "place": "Newburgh Center B",
+   "address": "15 Crossroads Court Newburgh, NY 12550",
+   "eta": "8:45 AM",
+   "etd": "9:00 AM",
+   "date": "2026-05-06",
+   "etaDate": "2026-05-06",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "NCB   Main Lobby - 15 Crossroads Ct, Newburgh, NY",
+     "entities": [
+      {
+       "name": "Vargas, Kira",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Warwick > Patterson                                 0"
+      },
+      {
+       "name": "Brennan, Kira",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "Newburgh Center",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Warwick > Patterson                                 0"
+      }
+     ]
+    },
+    {
+     "verb": "Pickup",
+     "where": "NCB   Main Lobby - 15 Crossroads Ct, Newburgh, NY",
+     "entities": [
+      {
+       "name": "Sutton-Hale, Cruz",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+00 000 0000000",
+       "note": "Cell is WhatsApp#",
+       "bags": 1,
+       "route": "Patterson > Warwick                                 1"
+      },
+      {
+       "name": "Brennan, Ana",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+00 000 0000000",
+       "bags": 1,
+       "route": "Patterson > Warwick                                 1"
+      },
+      {
+       "name": "Ibarra, Leon & Marcus",
+       "pax": 2,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "route": "Fishkill (FSC) > Warwick"
+      },
+      {
+       "name": "Cole, Noor & Tess",
+       "pax": 2,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Wallkill > Warwick                                 0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "TUX",
+   "place": "Tuxedo Property",
+   "address": "1422 Long Meadow Road Tuxedo Park , NY 10987",
+   "eta": "9:40 AM",
+   "etd": "9:40 AM",
+   "date": "2026-05-06",
+   "etaDate": "2026-05-06",
+   "actions": []
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "9:50 AM",
+   "etd": null,
+   "date": "2026-05-06",
+   "etaDate": "2026-05-06",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Sutton-Hale, Cruz",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+00 000 0000000",
+       "note": "Cell is WhatsApp#",
+       "bags": 1,
+       "route": "Patterson > Warwick                                1"
+      },
+      {
+       "name": "Brennan, Ana",
+       "pax": 1,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+00 000 0000000",
+       "bags": 1,
+       "route": "Patterson > Warwick                                1"
+      },
+      {
+       "name": "Ibarra, Leon & Marcus",
+       "pax": 2,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "route": "Fishkill (FSC) > Warwick"
+      },
+      {
+       "name": "Cole, Noor & Tess",
+       "pax": 2,
+       "tag": "S",
+       "gb": false,
+       "origin": "Newburgh Center",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 0,
+       "route": "Wallkill > Warwick                                 0"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-05-05 17:03",
+ "source": "334184-notes-are-a-timed-itinerary.txt"
+}

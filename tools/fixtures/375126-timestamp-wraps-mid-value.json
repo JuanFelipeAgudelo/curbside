@@ -1,0 +1,27 @@
+{
+ "number": "375126",
+ "start": "2026-09-16 07:45",
+ "end": "2026-09-16 12:00",
+ "driver": "Reyes, Mara",
+ "vehicle": "(1 Seats)",
+ "parking": null,
+ "originCode": null,
+ "driverNotes": "Dispatch Helper.  Please Shadow Marcus Van Warner.  login by 7:45 am",
+ "assistants": [],
+ "steps": [
+  {
+   "code": null,
+   "place": "Dispatch",
+   "address": null,
+   "eta": "7:45 AM",
+   "etd": "12:00 PM",
+   "date": "2026-09-16",
+   "etaDate": "2026-09-16",
+   "actions": []
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-09-15 16:51",
+ "source": "375126-timestamp-wraps-mid-value.txt"
+}

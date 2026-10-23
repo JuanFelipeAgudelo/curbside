@@ -1,0 +1,33 @@
+{
+ "number": "353328",
+ "start": "2026-07-03 10:30",
+ "end": "2026-07-03 12:00",
+ "driver": "Reyes, Mara",
+ "vehicle": null,
+ "parking": null,
+ "originCode": null,
+ "driverNotes": "CLEAN + RESTOCK INSTRUCTIONS: Please clean conv room & restock cabinets, waters and coolers. If just a few items\nand comm has it in stock, then grab it. Place comm order for the following week IF NEEDED & pick up order from the\nprevious week.  Reference laminated hardcopy sheet inside the cabinet & initial your name on your order. Scan &\nsend the Email order to redacted@example.invalid            copy Ivan Brennan",
+ "assistants": [
+  {
+   "name": "Novak, Jude",
+   "role": "Helper",
+   "note": "Trainee"
+  }
+ ],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "10:30 AM",
+   "etd": "12:00 PM",
+   "date": "2026-07-03",
+   "etaDate": "2026-07-03",
+   "actions": []
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-07-02 17:01",
+ "source": "353328-notes-multi-paragraph-with-email.txt"
+}

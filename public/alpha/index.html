@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Curbside alpha</title>
+  <meta name="description" content="You're testing Curbside: a one-minute tour, setup in five steps, and what to try." />
+  <meta property="og:title" content="You're testing Curbside" />
+  <meta property="og:description" content="A one-minute tour, setup in five steps, and what to try." />
+  <meta property="og:image" content="https://curbside.juanfe02agu.workers.dev/icon-512.png" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#0E1B30" />
+  <script>
+    // The app's theme, before the first paint: the same rule as index.html.
+    (function () {
+      var mode = null;
+      try { mode = localStorage.getItem("fw_theme"); } catch (e) { /* private mode */ }
+      var d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+      var t = mode === "day" || mode === "night" ? mode
+            : h >= 6.5 && h < 19.5 ? "day" : h >= 23 || h < 5 ? "late" : "night";
+      if (t !== "night") document.documentElement.setAttribute("data-theme", t);
+      document.querySelector('meta[name="theme-color"]').setAttribute("content",
+        t === "day" ? "#EFECE4" : t === "late" ? "#070B14" : "#0E1B30");
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* The app's tokens (index.html), only the ones this page uses. */
+    :root {
+      color-scheme: dark;
+      --page: #0E1B30; --panel: #16294A; --panel-raised: #1C3459; --hairline: #1E3252; --hairline-strong: #2E4571;
+      --warn-strip: #251E14; --ink: #F4F1EA; --ink-2: #8FA1C0; --ink-warn: #D8C9A8;
+      --brass: #E8A33D; --brass-fill: #E8A33D; --moved: #7CC7F2; --gb: #C4A3F5;
+      --ok: #4FC38A; --alert-text: #FF7A62; --gutter: 16px; --bezel: #050A14;
+    }
+    [data-theme="day"] {
+      color-scheme: light;
+      --page: #EFECE4; --panel: #FFFFFF; --panel-raised: #F6F3EB; --hairline: #DBD6C9; --hairline-strong: #C3BCAA;
+      --warn-strip: #FBF3E3; --ink: #101E36; --ink-2: #56647C; --ink-warn: #6B4E17;
+      --brass: #8A5A06; --brass-fill: #E8A33D; --moved: #0B6694; --gb: #6A3FB0;
+      --ok: #1A6E47; --alert-text: #B4321C; --bezel: #101E36;
+    }
+    [data-theme="late"] {
+      --page: #070B14; --panel: #0D1422; --panel-raised: #121B2D; --hairline: #162036; --hairline-strong: #22304A;
+      --warn-strip: #15120C; --ink: #CFC8BA; --ink-2: #7D8AA0; --ink-warn: #BFB294;
+      --brass: #C98A2E; --brass-fill: #C98A2E; --moved: #5FA9D0; --gb: #A68AD6;
+      --ok: #3FA774; --alert-text: #E0634D; --bezel: #000000;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body {
+      margin: 0; background: var(--page); color: var(--ink);
+      font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    a { color: inherit; }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 var(--gutter); }
+    .chrome {
+      height: 43px; display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--hairline); padding-top: env(safe-area-inset-top, 0px); box-sizing: content-box;
+    }
+    .wordmark { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+    .wordmark::before { content: ""; width: 16px; height: 4px; border-radius: 2px; background: var(--brass-fill); }
+    .spacer { flex: 1; }
+    .tag {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--brass);
+      border: 1px solid currentColor; border-radius: 6px; padding: 3px 7px;
+    }
+    .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-2); }
+    h1 { margin: 10px 0 12px; font-size: clamp(30px, 8vw, 44px); line-height: 1.08; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+    h2 { margin: 6px 0 12px; font-size: 24px; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+    h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+    p, li { font-size: 15px; line-height: 1.6; text-wrap: pretty; }
+    p { margin: 0 0 12px; }
+    b { font-weight: 600; }
+    .muted { color: var(--ink-2); }
+    .caps { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; white-space: nowrap; }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      height: 48px; padding: 0 20px; border-radius: 10px; border: 1px solid var(--ink);
+      background: var(--ink); color: var(--page); text-decoration: none; cursor: pointer;
+      font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.14em;
+    }
+    .btn.ghost { background: none; color: var(--ink); border-color: var(--hairline-strong); }
+    .btn.brass { background: var(--brass-fill); border-color: var(--brass-fill); color: #1A1206; }
+
+    /* ---- hero ---- */
+    .hero { padding: 36px 0 8px; }
+    .lede { font-size: 17px; line-height: 1.55; color: var(--ink-2); max-width: 36em; margin-bottom: 22px; }
+    .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 30px 0 0; padding: 0; list-style: none; }
+    .facts li {
+      background: var(--panel); border: 1px solid var(--hairline); border-radius: 12px; padding: 14px;
+      font-size: 13.5px; line-height: 1.5; color: var(--ink-2);
+    }
+    .facts b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 3px; }
+    .facts i { display: block; width: 18px; height: 4px; border-radius: 2px; margin-bottom: 12px; }
+    @media (max-width: 600px) { .facts { grid-template-columns: 1fr; } }
+
+    section { padding: 44px 0 8px; scroll-margin-top: 8px; }
+    section + section { border-top: 1px solid var(--hairline); margin-top: 36px; }
+
+    /* ---- the tour ---- */
+    .tour { display: grid; grid-template-columns: auto 1fr; gap: 36px; align-items: center; margin-top: 18px; }
+    @media (max-width: 700px) { .tour { grid-template-columns: 1fr; gap: 18px; justify-items: center; } }
+    .phone {
+      /* --w is the screen, --s = --w / 375 (the app's width) */
+      --w: 280px; --s: 0.7467; width: calc(var(--w) + 20px); height: calc(var(--w) * 740 / 375 + 20px);
+      background: var(--bezel); border-radius: 44px; padding: 10px; position: relative; flex: none;
+      box-shadow: 0 0 0 1px var(--hairline-strong), 0 24px 60px -20px rgba(0, 0, 0, 0.55);
+    }
+    @media (max-width: 360px) { .phone { --w: 256px; --s: 0.6827; } }
+    .screen { width: 100%; height: 100%; border-radius: 34px; overflow: hidden; position: relative; background: var(--page); }
+    .screen iframe {
+      width: 375px; height: 740px; border: 0; display: block;
+      transform-origin: 0 0; transform: scale(var(--s)); /* --w / 375 */
+      /* Watched, not touched: the app stops a scroll leaving it, so a thumb on
+         the demo would scroll the demo, never this page. The steps drive it. */
+      pointer-events: none;
+    }
+    .device { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .made-up { font-size: 12px; color: var(--ink-2); text-align: center; max-width: 300px; }
+    .guide { width: 100%; max-width: 440px; }
+    .count { font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600; color: var(--ink-2); letter-spacing: 0.06em; }
+    .card-step { min-height: 190px; }
+    .card-step h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 8px 0 10px; }
+    .card-step p { font-size: 16px; }
+    .card-step.enter { animation: rise 0.28s ease-out; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .card-step.enter { animation: none; } }
+    .swatches { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 0 0; padding: 0; list-style: none; }
+    .swatches li { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-2); }
+    .swatches i { width: 10px; height: 10px; border-radius: 50%; }
+    /* Dots on their own row: eight 28px targets and two buttons don't share 343px. */
+    .tour-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 12px; }
+    .dots { display: flex; flex: 1 0 100%; }
+    .dots { gap: 0; margin-left: -10px; }
+    .dots button {
+      position: relative; width: 28px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer;
+    }
+    .dots button::after {
+      content: ""; position: absolute; left: 10px; top: 18px; width: 8px; height: 8px; border-radius: 4px;
+      background: var(--hairline-strong); transition: width 0.2s, background 0.2s;
+    }
+    .dots button[aria-current="step"] { width: 42px; }
+    .dots button[aria-current="step"]::after { width: 22px; background: var(--brass-fill); }
+    .tour-nav .btn { height: 44px; padding: 0 16px; flex: 1; }
+    .tour-nav #next { flex: 2; }
+    .tour-nav .btn[disabled] { opacity: 0.35; cursor: default; }
+
+    /* ---- setup ---- */
+    .seg { display: inline-flex; gap: 4px; padding: 4px; background: var(--panel); border: 1px solid var(--hairline); border-radius: 12px; margin: 4px 0 18px; }
+    .seg button {
+      padding: 9px 16px; border-radius: 8px; border: 0; background: none; cursor: pointer; color: var(--ink-2);
+      font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    }
+    .seg button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
+    /* 44px to tap, the look unchanged (the app's own rule, index.html "hit areas"). */
+    .seg button, .end .small a { position: relative; }
+    .seg button::before, .end .small a::before {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
+    }
+    .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .steps > li {
+      display: grid; grid-template-columns: 40px 1fr; gap: 14px;
+      background: var(--panel); border: 1px solid var(--hairline); border-radius: 14px; padding: 18px 16px;
+    }
+    .num {
+      width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid var(--hairline-strong); font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 16px;
+    }
+    .steps ol { margin: 6px 0 0; padding-left: 20px; }
+    .steps ol li { font-size: 14.5px; margin-bottom: 3px; }
+    .steps p { font-size: 14.5px; margin: 6px 0 0; }
+    [data-os][hidden] { display: none; }
+    .ico { display: inline-block; width: 16px; height: 16px; vertical-align: -3px; fill: none; stroke: currentColor;
+           stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+    .note {
+      display: flex; gap: 10px; align-items: flex-start; background: var(--warn-strip); border-radius: 10px;
+      padding: 12px; margin-top: 12px; font-size: 13.5px; line-height: 1.55; color: var(--ink-warn);
+    }
+    .note .ico { flex: none; margin-top: 3px; width: 15px; height: 15px; stroke-width: 2; vertical-align: 0; }
+
+    /* ---- try list ---- */
+    .try { list-style: none; margin: 0; padding: 0; border: 1px solid var(--hairline); border-radius: 14px; overflow: hidden; background: var(--panel); }
+    .try li + li { border-top: 1px solid var(--hairline); }
+    .try label { position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; cursor: pointer; }
+    .try input { position: absolute; opacity: 0; pointer-events: none; }
+    .box {
+      flex: none; width: 22px; height: 22px; border-radius: 6px; margin-top: 1px;
+      border: 1.5px solid var(--hairline-strong); display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .box .ico { width: 14px; height: 14px; stroke-width: 3; opacity: 0; color: var(--page); vertical-align: 0; }
+    .try input:checked + .box { background: var(--ok); border-color: var(--ok); }
+    .try input:checked + .box .ico { opacity: 1; }
+    .try input:focus-visible + .box { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .try .what { font-size: 15px; font-weight: 600; display: block; }
+    .try .why { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; display: block; margin-top: 2px; }
+    .try input:checked ~ span .what { color: var(--ink-2); }
+
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+    .panel { background: var(--panel); border: 1px solid var(--hairline); border-radius: 14px; padding: 18px 16px; }
+    .panel ul { margin: 8px 0 0; padding-left: 20px; }
+    .panel li { font-size: 14.5px; margin-bottom: 4px; }
+    .panel li::marker { color: var(--ink-2); }
+
+    .end { text-align: center; padding: 56px 0 calc(40px + env(safe-area-inset-bottom, 0px)); }
+    .end h2 { font-size: 28px; }
+    .end .btn { height: 54px; padding: 0 28px; font-size: 13px; }
+    .end .small { margin-top: 16px; font-size: 13px; }
+
+    /* Light / dark: the app's own setting (fw_theme), so Settings agrees. */
+    .theme-btn {
+      width: 44px; height: 44px; margin-right: -10px; display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink-2);
+    }
+    .theme-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75;
+                     stroke-linecap: round; stroke-linejoin: round; }
+    .theme-btn .moon { display: none; }
+    [data-theme="day"] .theme-btn .sun { display: none; }
+    [data-theme="day"] .theme-btn .moon { display: inline; }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M9 15h6" /><path d="M12 18v-6" /></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 2v13" /><path d="m16 6-4-4-4 4" /><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
+  </defs></svg>
+
+  <div class="wrap">
+    <header class="chrome">
+      <span class="wordmark">curbside</span>
+      <span class="spacer"></span>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="Switch to light mode">
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
+      </button>
+      <span class="tag">ALPHA</span>
+    </header>
+
+    <!-- ============ HERO ============ -->
+    <div class="hero">
+      <span class="eyebrow">YOU'RE ONE OF THREE TESTERS</span>
+      <h1>Thanks for testing Curbside.</h1>
+      <p class="lede">Curbside turns dispatch's assignment PDF into your run on your phone, then keeps an eye
+      on the flights while you drive. Take the one-minute tour, set it up in five steps, and tell us
+      everything that trips you up.</p>
+      <div class="hero-actions">
+        <a class="btn" href="#tour">TAKE THE TOUR</a>
+        <a class="btn ghost" href="#setup">SET IT UP</a>
+      </div>
+      <ul class="facts">
+        <li><i style="background:var(--brass-fill)"></i><b>Reads dispatch's PDF</b>Right on your phone. Every stop,
+          passenger, door and flight, in dispatch's order.</li>
+        <li><i style="background:var(--moved)"></i><b>Watches the flights</b>Delays, gates and belts show up on the
+          run, and your clocks follow them.</li>
+        <li><i style="background:var(--ok)"></i><b>Never changes the plan</b>Dispatch's times always stay. What the
+          app works out sits beside them, labelled.</li>
+      </ul>
+    </div>
+
+    <!-- ============ TOUR ============ -->
+    <section id="tour" aria-labelledby="tour-h">
+      <span class="eyebrow">THE TOUR</span>
+      <h2 id="tour-h">One minute, two made-up runs</h2>
+      <div class="tour">
+        <div class="device">
+        <div class="phone">
+          <div class="screen">
+            <iframe id="demo" src="/?preview&amp;tour" title="Curbside, playing a made-up run" tabindex="-1"
+                    allow="screen-wake-lock 'none'" loading="lazy"></iframe>
+          </div>
+        </div>
+        <span class="made-up">The real app, on made-up runs. Nothing here is saved.</span>
+        </div>
+        <div class="guide">
+          <div class="card-step" id="step" aria-live="polite"></div>
+          <div class="tour-nav">
+            <div class="dots" id="dots" role="group" aria-label="Tour steps"></div>
+            <button class="btn ghost" id="prev" type="button" aria-label="Previous step">BACK</button>
+            <button class="btn" id="next" type="button">NEXT</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SETUP ============ -->
+    <section id="setup" aria-labelledby="setup-h">
+      <span class="eyebrow">SETUP · ABOUT FIVE MINUTES</span>
+      <h2 id="setup-h">Set it up in five steps</h2>
+      <div class="seg" role="group" aria-label="Your phone">
+        <button type="button" data-pick="ios" aria-pressed="true">IPHONE</button>
+        <button type="button" data-pick="android" aria-pressed="false">ANDROID</button>
+      </div>
+      <ol class="steps">
+        <li>
+          <span class="num">1</span>
+          <div>
+            <h3>Put it on your Home Screen</h3>
+            <ol data-os="ios">
+              <li>Tap <b>Open Curbside</b> at the bottom of this page, in <b>Safari</b>.</li>
+              <li>Tap Share (<svg class="ico" aria-hidden="true"><use href="#i-share" /></svg>), then <b>Add to Home Screen</b>.</li>
+              <li>From now on, open Curbside <b>from its icon</b>, not from Safari.</li>
+            </ol>
+            <ol data-os="android" hidden>
+              <li>Tap <b>Open Curbside</b> at the bottom of this page, in <b>Chrome</b>.</li>
+              <li>Tap the <b>&#8942;</b> menu, then <b>Install app</b> (or <b>Add to Home screen</b>).</li>
+              <li>Open Curbside from its icon.</li>
+            </ol>
+            <p class="muted" data-os="ios">The icon and Safari keep separate data, so do the rest in the app you opened from the icon.</p>
+          </div>
+        </li>
+        <li>
+          <span class="num">2</span>
+          <div>
+            <h3>Start your list, and save the code</h3>
+            <p>Tap <span class="caps">START A NEW LIST</span>. Curbside shows your <b>list code</b>, eight letters and
+            numbers. Tap <span class="caps">SHARE</span> and send it to yourself (Notes, or a text), then
+            <span class="caps">SAVED</span>.</p>
+            <div class="note">
+              <svg class="ico" aria-hidden="true"><use href="#i-alert" /></svg>
+              <span>There are no accounts or passwords: the code <b>is</b> your list. Lose it and nobody can get the
+              list back. Settings (<svg class="ico" aria-hidden="true" style="width:13px;height:13px;margin:0;vertical-align:-2px"><use href="#i-settings" /></svg>)
+              always shows it.</span>
+            </div>
+          </div>
+        </li>
+        <li>
+          <span class="num">3</span>
+          <div>
+            <h3>Turn on flight alerts</h3>
+            <p>Settings (<svg class="ico" aria-hidden="true" style="width:13px;height:13px;margin:0;vertical-align:-2px"><use href="#i-settings" /></svg>)
+            &rarr; <b>List code and alerts</b> &rarr; <span class="caps">TURN ON</span>, and say yes when the phone
+            asks. Curbside then buzzes this phone itself when a flight moves, with what to do and your new times.
+            Tap <span class="caps">SEND A TEST</span> to see one arrive.</p>
+            <p class="muted" data-os="ios">On an iPhone this only works in the app opened from its Home Screen icon (step 1).</p>
+          </div>
+        </li>
+        <li>
+          <span class="num">4</span>
+          <div>
+            <h3>Import dispatch's sheet</h3>
+            <ol data-os="ios">
+              <li>In <b>Outlook</b>, open dispatch's email and tap the PDF.</li>
+              <li>Tap Share (<svg class="ico" aria-hidden="true"><use href="#i-share" /></svg>), then <b>Save to Files</b>.</li>
+              <li>In Curbside, tap the file icon (<svg class="ico" aria-hidden="true"><use href="#i-file-plus" /></svg>) at the top and pick the PDF.</li>
+            </ol>
+            <ol data-os="android" hidden>
+              <li>Open dispatch's PDF from the email.</li>
+              <li>Tap <b>Share</b>, then <b>Curbside</b>. That's it.</li>
+            </ol>
+            <p class="muted">A line under the header says what each file did. When dispatch re-sends a run, import
+            the new sheet too: the newest print replaces the old one, and your corrections stay.</p>
+          </div>
+        </li>
+        <li>
+          <span class="num">5</span>
+          <div>
+            <h3>Drive with it</h3>
+            <p>Open the run when you start. What you're doing now is at the top, with
+            <span class="caps">ROUTE IN MAPS</span> under it for every stop still ahead. Message a passenger with
+            WHATSAPP or TEXT, and tap a flight, door, time or leg that's wrong to fix it. Dispatch's sheet is still
+            the plan: Curbside is there to help you follow it.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============ WHAT TO TRY ============ -->
+    <section id="try" aria-labelledby="try-h">
+      <span class="eyebrow">WHAT WE NEED FROM YOU</span>
+      <h2 id="try-h">Ten things to try this week</h2>
+      <p class="muted">Tick them off as you go (only this phone remembers).</p>
+      <ul class="try" id="try-list">
+        <li><label><input type="checkbox" data-try="alerts" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">Turn alerts on and send yourself a test</span>
+          <span class="why">Did it buzz this phone within a few seconds? And when a real flight moved, did the alert say what to do?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="import" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">Import a real sheet the evening it arrives</span>
+          <span class="why">Did every stop, passenger and time come through the way dispatch printed it?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="drive" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">Drive a whole run with it open</span>
+          <span class="why">Were the two clocks right? Was anything hard to read at a glance?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="route" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">Open a run's route in Maps</span>
+          <span class="why">Did Maps open with every stop, in dispatch's order?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="message" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">Message a passenger the evening before</span>
+          <span class="why">Did WhatsApp or TEXT open with your message filled in for them?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="fix" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">Fix something that's wrong</span>
+          <span class="why">A door, a phone number, a flight or a time. Was it obvious how?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="shuttle" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">If you get a shuttle, work it from its legs</span>
+          <span class="why">Did RIGHT NOW follow the legs as you ticked them? Did any line come through wrong?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="resend" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">Import a sheet dispatch re-sent</span>
+          <span class="why">Did WHAT DISPATCH CHANGED catch everything that changed, and mark it on the right stop?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="remessage" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">If a plan changes after you messaged someone</span>
+          <span class="why">Did MESSAGES flag them in red with what changed, and open a draft starting "Update:"?</span></span></label></li>
+        <li><label><input type="checkbox" data-try="feedback" /><span class="box"><svg class="ico"><use href="#i-check" /></svg></span>
+          <span><span class="what">Send one piece of feedback</span>
+          <span class="why">Even "all fine" helps. Settings &rarr; SEND FEEDBACK.</span></span></label></li>
+      </ul>
+    </section>
+
+    <!-- ============ FEEDBACK + SMALL PRINT ============ -->
+    <section id="feedback" aria-labelledby="fb-h">
+      <span class="eyebrow">TELL US</span>
+      <h2 id="fb-h">Feedback, and good to know</h2>
+      <div class="two">
+        <div class="panel">
+          <h3>Sending feedback</h3>
+          <p class="muted" style="font-size:14.5px;margin:0">Settings (<svg class="ico" aria-hidden="true"><use href="#i-settings" /></svg>)
+          &rarr; <span class="caps">SEND FEEDBACK</span>. The notes that help most say:</p>
+          <ul>
+            <li>what you tapped,</li>
+            <li>what you expected,</li>
+            <li>what you saw instead.</li>
+          </ul>
+          <p class="muted" style="font-size:13.5px;margin:10px 0 0">Your note goes with the app version, never your list code.
+          Please leave out passengers' names and phone numbers.</p>
+        </div>
+        <div class="panel">
+          <h3>Good to know</h3>
+          <ul>
+            <li><b>It's a test.</b> Dispatch's sheet is the plan; when it matters, check a flight on the airline's app too.</li>
+            <li><b>Flight checks are rationed</b> on a free plan: a few per flight. If it says <i>paused</i>, times are
+              the last check's or as printed.</li>
+            <li><b>Your data:</b> the PDF is read on your phone. The run is stored under your code and deleted
+              7 days after it ends (change it in Settings).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="end">
+      <h2>Ready when you are.</h2>
+      <a class="btn brass" href="/">OPEN CURBSIDE</a>
+      <p class="small muted">Need a refresher later? The <a href="/guide/">full guide</a> is in Settings too.</p>
+    </div>
+  </div>
+
+  <script>
+    /* ---------------- the tour: each step picks a scene in the demo ---------------- */
+    // Scenes are preview.js's (public/preview.js `scenes`); `at` is what to scroll to in the demo.
+    var STEPS = [
+      { scene: 0, title: "Your run, right now",
+        text: "Dispatch's sheet becomes a run. The band at the top says what you're doing right now, and every stop follows in dispatch's order." },
+      { scene: 0, title: "The whole route in Maps",
+        text: "<b>ROUTE IN MAPS</b>, under the band, shows every stop still ahead, in dispatch's order, from where you are. Move, leave out or add a stop there, then open it in Apple Maps or Google Maps." },
+      { scene: 0, at: ".clocks", title: "Two clocks at every airport",
+        text: "<b>PARKED AT</b>: be in the lot before the <i>first</i> flight lands. <b>LEAVING</b>: when the <i>last</i> passenger should be out with their bags. Dispatch's planned time sits right under each." },
+      { scene: 1, at: ".action", title: "A flight moves",
+        text: "UA 1234 is running 12 minutes late. Dispatch's time stays put; the change shows beneath it, named for the flight, and your clocks follow." },
+      { scene: 3, at: ".action", title: "Gates and belts",
+        text: "As the airline publishes them, the terminal, gate and baggage belt appear on each passenger. No more guessing at the claim door." },
+      { scene: 8, at: ".action", title: "Fix what's wrong",
+        text: "Tap a flight number, a door or a time to correct it. The three dots on a passenger's card open their phone number and more. Your version is marked as yours and dispatch's stays underneath. No signal? It's saved and sent later." },
+      { scene: 9, at: ".action", title: "Someone's not coming",
+        text: "The three dots on their card, then Not coming. They stay on the run, greyed out, with an UNDO that never runs out." },
+      { scene: 11, title: "Governing Body runs",
+        text: "GB passengers are violet, get double the margin, and louder alerts.", colours: true },
+      { scene: 5, title: "On to the next stop",
+        text: "Once you've left the airport, the run moves on to the next stop by itself." },
+      { scene: 13, title: "Shuttles and other windows",
+        text: "A stop with no address, like a shuttle, is a window: a dashed band with dispatch's hours. The timed lines in dispatch's notes are its legs. RIGHT NOW reads the next one; tick each off yourself, or tap its words to fix it." },
+      { scene: 13, title: "Places, once",
+        text: "Legs name places by code. One with no address yet holds <b>ROUTE IN MAPS</b>: add it once in Settings &rarr; Places, and every phone on your list knows it. That's the tour: now set it up." },
+    ];
+    var COLOURS = [["var(--brass-fill)", "here"], ["var(--moved)", "a time moved"], ["var(--alert-text)", "a problem"],
+                   ["var(--ok)", "done"], ["var(--gb)", "GB"]];
+
+    var demo = document.getElementById("demo");
+    var stepEl = document.getElementById("step");
+    var dots = document.getElementById("dots");
+    var prev = document.getElementById("prev");
+    var next = document.getElementById("next");
+    var current = 0, ready = false;
+
+    STEPS.forEach(function (s, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-label", "Step " + (i + 1) + ": " + s.title);
+      b.addEventListener("click", function () { show(i); });
+      dots.appendChild(b);
+    });
+
+    function tell() {
+      if (!ready) return;
+      var s = STEPS[current];
+      demo.contentWindow.postMessage({ tourScene: s.scene, scrollTo: s.at || null }, location.origin);
+    }
+
+    function show(i) {
+      current = Math.max(0, Math.min(STEPS.length - 1, i));
+      var s = STEPS[current];
+      stepEl.innerHTML = '<span class="count">' + (current + 1) + " / " + STEPS.length + "</span>" +
+        "<h3>" + s.title + "</h3><p>" + s.text + "</p>" +
+        (s.colours ? '<ul class="swatches">' + COLOURS.map(function (c) {
+          return '<li><i style="background:' + c[0] + '"></i>' + c[1] + "</li>"; }).join("") + "</ul>" : "");
+      stepEl.classList.remove("enter"); void stepEl.offsetWidth; stepEl.classList.add("enter");
+      Array.prototype.forEach.call(dots.children, function (d, j) {
+        if (j === current) d.setAttribute("aria-current", "step"); else d.removeAttribute("aria-current");
+      });
+      prev.disabled = current === 0;
+      var last = current === STEPS.length - 1;
+      next.textContent = last ? "SET IT UP" : "NEXT";
+      tell();
+    }
+
+    prev.addEventListener("click", function () { show(current - 1); });
+    next.addEventListener("click", function () {
+      if (current === STEPS.length - 1) document.getElementById("setup").scrollIntoView();
+      else show(current + 1);
+    });
+    window.addEventListener("message", function (e) {
+      if (e.origin === location.origin && e.data && e.data.tourReady) { ready = true; tell(); }
+    });
+    // A swipe across the step's words turns the page, as on a phone it should.
+    var sx = null;
+    stepEl.addEventListener("touchstart", function (e) { sx = e.touches[0].clientX; }, { passive: true });
+    stepEl.addEventListener("touchend", function (e) {
+      if (sx === null) return;
+      var dx = e.changedTouches[0].clientX - sx; sx = null;
+      if (Math.abs(dx) > 40) show(current + (dx < 0 ? 1 : -1));
+    });
+    show(0);
+
+    /* ---------------- iPhone / Android ---------------- */
+    var picks = document.querySelectorAll("[data-pick]");
+    function pick(os) {
+      picks.forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.pick === os)); });
+      document.querySelectorAll("[data-os]").forEach(function (el) { el.hidden = el.dataset.os !== os; });
+      try { localStorage.setItem("alpha_os", os); } catch (e) { /* nicety */ }
+    }
+    picks.forEach(function (b) { b.addEventListener("click", function () { pick(b.dataset.pick); }); });
+    var saved = null;
+    try { saved = localStorage.getItem("alpha_os"); } catch (e) { /* nicety */ }
+    pick(saved || (/android/i.test(navigator.userAgent) ? "android" : "ios"));
+
+    /* ---------------- the try list, remembered on this phone ---------------- */
+    var done = {};
+    try { done = JSON.parse(localStorage.getItem("alpha_tried") || "{}") || {}; } catch (e) { done = {}; }
+    document.querySelectorAll("[data-try]").forEach(function (box) {
+      box.checked = !!done[box.dataset.try];
+      box.addEventListener("change", function () {
+        done[box.dataset.try] = box.checked;
+        try { localStorage.setItem("alpha_tried", JSON.stringify(done)); } catch (e) { /* nicety */ }
+      });
+    });
+  </script>
+  <script>
+    /* Light / dark. Writes the app's own fw_theme ("day" / "night"), the same
+       choice as Settings' DAY / NIGHT; AUTO stays in the app's Settings. */
+    (function () {
+      var btn = document.getElementById("theme-btn");
+      var COLOR = { day: "#EFECE4", night: "#0E1B30", late: "#070B14" };
+      function current() { return document.documentElement.getAttribute("data-theme") || "night"; }
+      function label() {
+        btn.setAttribute("aria-label", current() === "day" ? "Switch to dark mode" : "Switch to light mode");
+      }
+      btn.addEventListener("click", function () {
+        var next = current() === "day" ? "night" : "day";
+        if (next === "night") document.documentElement.removeAttribute("data-theme");
+        else document.documentElement.setAttribute("data-theme", next);
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", COLOR[next]);
+        try { localStorage.setItem("fw_theme", next); } catch (e) { /* this visit only */ }
+        // The demo phone is the app itself: it follows, the way Settings would.
+        var demo = document.getElementById("demo");
+        try { if (demo && demo.contentWindow.setThemeMode) demo.contentWindow.setThemeMode(next); } catch (e) { /* not loaded */ }
+        label();
+      });
+      label();
+    })();
+  </script>
+</body>
+</html>

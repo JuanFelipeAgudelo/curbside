@@ -1,0 +1,116 @@
+{
+ "number": "366824",
+ "start": "2026-08-18 08:00",
+ "end": "2026-08-18 15:00",
+ "driver": "Reyes, Mara",
+ "vehicle": "Branch (72398) 2020 Toyota Sienna (7",
+ "parking": "FKL-NBD-003",
+ "originCode": "FKL",
+ "driverNotes": "Drop off passengers to Embassy. Pickup when they are ready and return to FKL.\nAddress: 871 United Nations Plaza, New York, NY 10017",
+ "assistants": [],
+ "steps": [
+  {
+   "code": "FKL",
+   "place": "Fishkill",
+   "address": "33 Vaughn Way",
+   "eta": null,
+   "etd": "8:00 AM",
+   "date": "2026-08-18",
+   "etaDate": "2026-08-18",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "CLN - 800 Sacandaga Loop, Beacon, NY",
+     "entities": [
+      {
+       "name": "Keller, Mara & Nils",
+       "pax": 2,
+       "tag": "HO",
+       "gb": false,
+       "origin": "Fishkill",
+       "destination": "Germany Embesy",
+       "phone": "+1 555-0100-000",
+       "unsupported": "embassy/consulate"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": null,
+   "place": "Germany Embesy",
+   "address": "871 United Nations Plaza, New York , New York 10017",
+   "eta": "10:45 AM",
+   "etd": "1:00 PM",
+   "date": "2026-08-18",
+   "etaDate": "2026-08-18",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": null,
+     "entities": [
+      {
+       "name": "Keller, Mara & Nils",
+       "pax": 2,
+       "tag": "HO",
+       "gb": false,
+       "origin": "Fishkill",
+       "destination": "Germany Embesy",
+       "phone": "+1 555-0100-000",
+       "unsupported": "embassy/consulate"
+      }
+     ]
+    },
+    {
+     "verb": "Pickup",
+     "where": null,
+     "entities": [
+      {
+       "name": "Keller, Mara & Nils",
+       "pax": 2,
+       "tag": "HO",
+       "gb": false,
+       "origin": "Germany Embesy",
+       "destination": "Fishkill",
+       "phone": "+1 555-0100-000",
+       "unsupported": "embassy/consulate"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "FKL",
+   "place": "Fishkill",
+   "address": "33 Vaughn Way",
+   "eta": "3:00 PM",
+   "etd": null,
+   "date": "2026-08-18",
+   "etaDate": "2026-08-18",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "CLN - 800 Sacandaga Loop, Beacon, NY",
+     "entities": [
+      {
+       "name": "Keller, Mara & Nils",
+       "pax": 2,
+       "tag": "HO",
+       "gb": false,
+       "origin": "Germany Embesy",
+       "destination": "Fishkill",
+       "phone": "+1 555-0100-000",
+       "unsupported": "embassy/consulate"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "gb": false,
+ "issues": [
+  "HO row not yet supported: Keller, Mara & Nils"
+ ],
+ "printedAt": "2026-08-17 16:50",
+ "source": "366824-all-rows-excluded-must-still-appear.txt"
+}

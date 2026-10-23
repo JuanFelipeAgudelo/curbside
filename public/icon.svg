@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Curbside: the curb (brass) and the pickup point on it. Full bleed, so it
+       is maskable; both shapes sit inside the 40% safe circle. -->
+  <rect width="1024" height="1024" fill="#0E1B30" />
+  <rect x="195" y="584" width="635" height="102" fill="#E8A33D" />
+  <rect x="209" y="359" width="184" height="184" fill="#F4F1EA" />
+</svg>

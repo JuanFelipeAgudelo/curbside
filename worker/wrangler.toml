@@ -1,0 +1,72 @@
+name = "flightwatch-worker"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+# Poll every 20 minutes — plenty responsive for a delay/gate-change alert, and a
+# ~4x cut in AeroDataBox quota usage versus every 5 minutes (see also: scheduled()
+# stops polling a flight once it's landed, which matters far more at real scale).
+[triggers]
+crons = ["*/20 * * * *"]
+
+# Workers Logs: what the Worker writes with console.* is kept (3 days on the
+# free plan) and read in the dashboard, flightwatch-worker > Observability: a
+# failed flight lookup or push, any 500, the nightly retention count, and one
+# count-only line per cron tick with flights due. Those lines never carry a
+# list code or a name (review B5). Invocation logs stay OFF: a request's own
+# record would carry its headers, and the list code rides in X-List-Code.
+[observability]
+enabled = true
+redact_query_string = true
+
+[observability.logs]
+invocation_logs = false
+
+# `id` is production. `wrangler dev --remote` uses `preview_id` instead, so
+# testing never touches the driver's runs (the daily KV quota is still one
+# account-wide pool). Wrangler KV commands take `--preview` to reach it.
+[[kv_namespaces]]
+binding = "FLIGHT_DATA"
+id = "411ae9a0bf2a4ae2adcd3aea693360e6"
+preview_id = "98c19740bfab4de8aa04251263585e8e"
+
+# Rate limits per client address (CF-Connecting-IP), checked before any KV
+# call so a loop cannot burn the account's daily KV quota. Counted per
+# Cloudflare location and approximate by design. The code fails open: if a
+# binding is missing, nothing is limited. namespace_id is any number unique
+# on the account; period is 10 or 60 seconds.
+[[ratelimits]]
+name = "API_LIMITER"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 120
+  period = 60
+
+# New lists: 3 a minute here, backed by 10 an hour per isolate in the code.
+[[ratelimits]]
+name = "REGISTER_LIMITER"
+namespace_id = "1002"
+  [ratelimits.simple]
+  limit = 3
+  period = 60
+
+# Secrets (set via `wrangler secret put`, not stored here):
+#   AERODATABOX_KEY  — RapidAPI key for AeroDataBox
+#   WRITE_TOKEN      — guards writes to SHARED keys (the travel-time table).
+#                      Per-person data is protected by its list code; a table
+#                      that is one table for everybody has none, and this
+#                      Worker's URL is in a public repository. The check fails
+#                      CLOSED: with no WRITE_TOKEN set, shared writes are
+#                      refused rather than waved through.
+#   FEEDBACK_TOPIC   — the owner's ntfy topic: a quiet "new feedback" push per
+#                      tester note (never its text). Unset: notes are kept,
+#                      nobody is told.
+#   VAPID_PUBLIC,    — the Worker's Web Push key pair (v66, src/webpush.ts):
+#   VAPID_PRIVATE      alerts straight to the installed app. Made and set by
+#                      `node tools/vapid.mjs --put`, once: a new pair ends
+#                      every phone's subscription. Unset: no phone can turn
+#                      alerts on, and all go by ntfy.
+#   NTFY_TOKEN       — optional: an ntfy.sh access token, so its limits are
+#                      the token's plan and not Cloudflare's shared address.
+#
+# Each private list gets its own auto-generated ntfy topic at registration
+# (see /api/register), stored in KV alongside the list.
