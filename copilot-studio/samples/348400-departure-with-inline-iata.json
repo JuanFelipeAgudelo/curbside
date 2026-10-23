@@ -1,0 +1,167 @@
+{
+ "number": "348400",
+ "start": "2026-06-05 08:45",
+ "end": "2026-06-05 16:00",
+ "driver": "Reyes, Mara",
+ "vehicle": "Branch (72560) 2023 Toyota Sienna (8",
+ "parking": "WRK-RPG-BSMNT-065",
+ "originCode": "WRK",
+ "driverNotes": "Pick up from Wallkill at 10:00 AM. Drop off and pick up from EWR.\nPlease take Hendersons to main lobby to check in and then drive them to their room.",
+ "assistants": [],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": null,
+   "etd": "8:45 AM",
+   "date": "2026-06-05",
+   "etaDate": "2026-06-05",
+   "actions": []
+  },
+  {
+   "code": "WKL",
+   "place": "Wallkill",
+   "address": "900 Red Mills Rd.",
+   "eta": "10:00 AM",
+   "etd": "10:00 AM",
+   "date": "2026-06-05",
+   "etaDate": "2026-06-05",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "F Res",
+     "entities": [
+      {
+       "name": "Ford, Dana & Omar",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Wallkill",
+       "destination": "EWR Newark",
+       "phone": "+1 555-0100-000",
+       "bags": 4,
+       "flightNumber": "UA1068",
+       "scheduledText": "1:55 PM MSP - Minneapolis/St.",
+       "flightDate": "2026-06-05"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "EWR",
+   "place": "EWR Newark",
+   "address": "Rt. 1 & 9 Newark , NJ 7114",
+   "eta": "12:30 PM",
+   "etd": "2:45 PM",
+   "date": "2026-06-05",
+   "etaDate": "2026-06-05",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "Departure Terminal",
+     "entities": [
+      {
+       "name": "Ford, Dana & Omar",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Wallkill",
+       "destination": "EWR Newark",
+       "phone": "+1 555-0100-000",
+       "bags": 4,
+       "flightNumber": "UA1068",
+       "scheduledText": "1:55 PM MSP - Minneapolis/St.",
+       "flightDate": "2026-06-05"
+      }
+     ]
+    },
+    {
+     "verb": "Pickup",
+     "where": "Customs Exit",
+     "entities": [
+      {
+       "name": "Sandoval, Noor & Vera",
+       "pax": 2,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Warwick",
+       "phone": "+00 0 00 00 00 00",
+       "bags": 4,
+       "flightNumber": "UA995",
+       "scheduledText": "1:10 PM Brussels",
+       "flightDate": "2026-06-05"
+      },
+      {
+       "name": "Vargas, Eli & Rosa",
+       "pax": 2,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 2,
+       "flightNumber": "LH7603",
+       "scheduledText": "1:40 PM FRA",
+       "flightDate": "2026-06-05"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "4:00 PM",
+   "etd": null,
+   "date": "2026-06-05",
+   "etaDate": "2026-06-05",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "A-res WRK",
+     "entities": [
+      {
+       "name": "Vargas, Eli & Rosa",
+       "pax": 2,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 2,
+       "flightNumber": "LH7603",
+       "scheduledText": "1:40 PM FRA",
+       "flightDate": "2026-06-05"
+      }
+     ]
+    },
+    {
+     "verb": "Drop-Off",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Sandoval, Noor & Vera",
+       "pax": 2,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Warwick",
+       "phone": "+00 0 00 00 00 00",
+       "bags": 4,
+       "flightNumber": "UA995",
+       "flightDate": "2026-06-05"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-06-04 17:17",
+ "source": "348400-departure-with-inline-iata.pdf"
+}

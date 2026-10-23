@@ -1,0 +1,93 @@
+{
+ "number": "340343",
+ "start": "2026-05-06 13:30",
+ "end": "2026-05-06 17:15",
+ "driver": "Jonas, Nils",
+ "vehicle": "Branch (72524) 2023 Toyota Sienna (8",
+ "parking": "WRK-RPG-BSMNT-060",
+ "originCode": "WRK",
+ "driverNotes": "JFK drop-off\nNolan, please train Elijah. Nolan will drive to JFK, and Elijah will drive on the way back.",
+ "assistants": [
+  {
+   "name": "Ashford, Kian Elijah",
+   "role": null,
+   "note": null
+  }
+ ],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": null,
+   "etd": "1:30 PM",
+   "date": "2026-05-06",
+   "etaDate": "2026-05-06",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Tanaka, Hana & Pia",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "JFK Kennedy",
+       "phone": "+000 000 000 000",
+       "bags": 2,
+       "flightNumber": "AF5",
+       "scheduledText": "6:30 PM Paris, CDG",
+       "flightDate": "2026-05-06"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "JFK",
+   "place": "JFK Kennedy",
+   "address": "JFK Expressway Jamaica, NY 11430",
+   "eta": "3:30 PM",
+   "etd": "3:30 PM",
+   "date": "2026-05-06",
+   "etaDate": "2026-05-06",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "Departure Terminal",
+     "entities": [
+      {
+       "name": "Tanaka, Hana & Pia",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "JFK Kennedy",
+       "phone": "+000 000 000 000",
+       "bags": 2,
+       "flightNumber": "AF5",
+       "scheduledText": "6:30 PM Paris, CDG",
+       "flightDate": "2026-05-06"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "5:15 PM",
+   "etd": null,
+   "date": "2026-05-06",
+   "etaDate": "2026-05-06",
+   "actions": []
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-05-05 17:03",
+ "source": "340343-row-endpoints-beat-enclosing-stop.pdf"
+}

@@ -81,7 +81,9 @@ collected together, but they do not constrain the same thing:
   And the driver's own routine — call the passenger on reaching the airport,
   again until they are in the car — cannot be run from the road.
 - **When the driver may LEAVE** is set by the **latest** arrival, plus its
-  deplane allowance (45m domestic, 60m international).
+  deplane allowance (45m domestic, 105m international: 45 for bags plus 60 for
+  customs, as built in `notify.ts` and `assignments.js`; this line said 60 until
+  2026-10-23).
 
 Generalised across step types: **be there for the earliest obligation, leave
 after the latest one.** A drop-off's obligation is its check-in deadline
@@ -663,6 +665,19 @@ more than the order.
 
 Phases 5–8 give a personal app worth using every day. 9–12 are additions, each
 safe to do alone. The scale row is what stands between that and other drivers.
+
+**The scale row, on the department's platform (the owner, 2026-10-23).** The
+department will rebuild Curbside in its own Microsoft 365 (Copilot Studio,
+Dataverse, Power Automate) for every driver; this app keeps running for the owner
+meanwhile. Copilot Studio cannot run this code, so `copilot-studio/` is the build
+kit: the rules as short documents, the agent's instructions, the Dataverse
+design, the sheet reader's spec with 15 sample PDFs and their exact readings, a
+test set, the IT request, and an Azure Function connector for running this
+code unchanged. `tools/kit.mjs` generates the samples, the test set and the alert
+examples from the code, and `worker/src/kit.test.ts` fails when the kit drifts
+from it. In the department's version a Teams alert may name the passenger (the
+owner, 2026-10-23: a one-to-one chat is private); this app's alerts still name
+nobody.
 
 ### Five changes from the first plan
 

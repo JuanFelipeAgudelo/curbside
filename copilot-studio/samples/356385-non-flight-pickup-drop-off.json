@@ -1,0 +1,217 @@
+{
+ "number": "356385",
+ "start": "2026-07-06 15:30",
+ "end": "2026-07-06 22:00",
+ "driver": "Reyes, Mara",
+ "vehicle": "Branch (72614) 2023 Mercedes Benz",
+ "parking": "WRK-RPG-BSMNT-071",
+ "originCode": "WRK",
+ "driverNotes": "**Update:** Use Sprinter 72614 to pick up at RCA-2616 at 4:30pm, then at Warwick at 5:45pm, drop off Hale at JFK (not for\na flight), pick up the Roe family at JFK curbside if needed and return to Warwick.",
+ "assistants": [],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": null,
+   "etd": "3:30 PM",
+   "date": "2026-07-06",
+   "etaDate": "2026-07-06",
+   "actions": []
+  },
+  {
+   "code": "FKL",
+   "place": "Fishkill",
+   "address": "33 Vaughn Way",
+   "eta": "4:30 PM",
+   "etd": "4:30 PM",
+   "date": "2026-07-06",
+   "etaDate": "2026-07-06",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "RCA - 2600's Boscobel Loop",
+     "entities": [
+      {
+       "name": "Ford, Noor",
+       "pax": 1,
+       "tag": "D",
+       "gb": false,
+       "origin": "Fishkill",
+       "destination": "JFK Kennedy",
+       "phone": "+0 0000000000",
+       "note": "RCA-2616",
+       "flightNumber": "DL114",
+       "scheduledText": "10:25 PM OPO",
+       "flightDate": "2026-07-06"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "5:45 PM",
+   "etd": "5:45 PM",
+   "date": "2026-07-06",
+   "etaDate": "2026-07-06",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "D-res WRK",
+     "entities": [
+      {
+       "name": "Diaz, Kira & Theo",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "JFK Kennedy",
+       "phone": "+1 555-0100-000",
+       "bags": 4,
+       "flightNumber": "DL114",
+       "scheduledText": "10:25 PM Porto, Portugal (OPO)",
+       "flightDate": "2026-07-06"
+      }
+     ]
+    },
+    {
+     "verb": "Pickup",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Best, Ivan & Omar",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "JFK Kennedy",
+       "phone": "+00 00-0000-0000",
+       "note": "Please note your leave time is 5:45 as we needed to combine this with other passengers. Thank you.",
+       "bags": 4,
+       "flightNumber": null,
+       "scheduledText": "10:00 PM 0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "JFK",
+   "place": "JFK Kennedy",
+   "address": "JFK Expressway Jamaica, NY 11430",
+   "eta": "7:45 PM",
+   "etd": "8:00 PM",
+   "date": "2026-07-06",
+   "etaDate": "2026-07-06",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": null,
+     "entities": [
+      {
+       "name": "Ford, Noor",
+       "pax": 1,
+       "tag": "D",
+       "gb": false,
+       "origin": "Fishkill",
+       "destination": "JFK Kennedy",
+       "phone": "+0 0000000000",
+       "note": "RCA-2616",
+       "flightNumber": "DL114",
+       "scheduledText": "10:25 PM OPO",
+       "flightDate": "2026-07-06"
+      }
+     ]
+    },
+    {
+     "verb": "Drop-Off",
+     "where": "Departure Terminal",
+     "entities": [
+      {
+       "name": "Best, Ivan & Omar",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "JFK Kennedy",
+       "phone": "+00 00-0000-0000",
+       "note": "Please note your leave time is 5:45 as we needed to combine this with other passengers. Thank you.",
+       "bags": 4,
+       "flightNumber": null,
+       "scheduledText": "10:00 PM 0"
+      },
+      {
+       "name": "Diaz, Kira & Theo",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "JFK Kennedy",
+       "phone": "+1 555-0100-000",
+       "bags": 4,
+       "flightNumber": "DL114",
+       "scheduledText": "10:25 PM Porto, Portugal (OPO)",
+       "flightDate": "2026-07-06"
+      }
+     ]
+    },
+    {
+     "verb": "Pickup",
+     "where": "Baggage Claim",
+     "entities": [
+      {
+       "name": "Warner, Ana, Dana & Noor",
+       "pax": 3,
+       "tag": "A",
+       "gb": false,
+       "origin": "JFK Kennedy",
+       "destination": "Warwick",
+       "phone": "+00 0000 0000",
+       "bags": 3,
+       "flightNumber": "AY15",
+       "scheduledText": "7:10 PM Helsinki",
+       "flightDate": "2026-07-06"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "10:00 PM",
+   "etd": null,
+   "date": "2026-07-06",
+   "etaDate": "2026-07-06",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Warner, Ana, Dana & Noor",
+       "pax": 3,
+       "tag": "A",
+       "gb": false,
+       "origin": "JFK Kennedy",
+       "destination": "Warwick",
+       "phone": "+00 0000 0000",
+       "bags": 3,
+       "flightNumber": "AY15",
+       "scheduledText": "7:10 PM Helsinki",
+       "flightDate": "2026-07-06"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-07-06 14:57",
+ "source": "356385-non-flight-pickup-drop-off.pdf"
+}

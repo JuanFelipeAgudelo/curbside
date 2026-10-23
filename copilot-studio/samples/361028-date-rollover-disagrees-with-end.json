@@ -1,0 +1,55 @@
+{
+ "number": "361028",
+ "start": "2026-08-04 07:30",
+ "end": "2026-08-04 11:55",
+ "driver": "Reyes, Mara",
+ "vehicle": "Branch (72672) 2024 Toyota Sienna (8",
+ "parking": null,
+ "originCode": null,
+ "driverNotes": "***Sign into the Teams FKL Taxi Channel***\n7:55am depart from RCA Lobby to CLN/CLS.\nStart on-call taxi. Calls will come from Dispatch.\n11:55am Depart from CLS/CLN to RCA.",
+ "assistants": [
+  {
+   "name": "Sutton, Noor",
+   "role": "Trainer",
+   "note": null
+  }
+ ],
+ "steps": [
+  {
+   "code": null,
+   "place": "Taxi 1",
+   "address": null,
+   "eta": "7:30 AM",
+   "etd": "11:25 AM",
+   "date": "2026-08-04",
+   "etaDate": "2026-08-04",
+   "actions": []
+  },
+  {
+   "code": "ABS",
+   "place": "After Breakfast Shuttle",
+   "address": null,
+   "eta": "7:55 AM",
+   "etd": "7:55 AM",
+   "date": "2026-08-05",
+   "etaDate": "2026-08-05",
+   "actions": []
+  },
+  {
+   "code": "BLS",
+   "place": "Before Lunch Shuttle",
+   "address": null,
+   "eta": "11:50 AM",
+   "etd": "11:55 AM",
+   "date": "2026-08-05",
+   "etaDate": "2026-08-05",
+   "actions": []
+  }
+ ],
+ "gb": false,
+ "issues": [
+  "last stop date disagrees with the document's stated end date -- check the multi-day rollover"
+ ],
+ "printedAt": "2026-08-03 16:47",
+ "source": "361028-date-rollover-disagrees-with-end.pdf"
+}

@@ -1,0 +1,333 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Curbside",
+    "description": "Curbside's own tested code (the sheet reader, the two clocks, alert wording, the check plan, the driver's changes) as an Azure Function. Stateless: JSON in, JSON out. See azure-functions.md.",
+    "version": "1.0.0"
+  },
+  "host": "curbside-functions.azurewebsites.net",
+  "basePath": "/api",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "functionKey": { "type": "apiKey", "in": "header", "name": "x-functions-key" }
+  },
+  "security": [{ "functionKey": [] }],
+  "paths": {
+    "/read-sheet": {
+      "post": {
+        "operationId": "ReadSheet",
+        "summary": "Read dispatch's assignment sheet",
+        "description": "Turns an assignment sheet PDF into a run, or says why it cannot (not-pdf, unsupported, picture, not-a-sheet, unreadable, too-big). Never guesses a value.",
+        "parameters": [{
+          "name": "body", "in": "body", "required": true,
+          "schema": {
+            "type": "object", "required": ["pdf"],
+            "properties": {
+              "pdf": { "type": "string", "format": "byte", "description": "The PDF, base64." },
+              "fileName": { "type": "string", "description": "The file's name, kept as the run's source." }
+            }
+          }
+        }],
+        "responses": { "200": { "description": "The reading", "schema": { "$ref": "#/definitions/ReadResult" } } }
+      }
+    },
+    "/is-newer-copy": {
+      "post": {
+        "operationId": "IsNewerCopy",
+        "summary": "Does an incoming sheet replace the stored one?",
+        "description": "The newest printed copy wins (by the footer), not the order copies arrive. Also says whether only the print time changed, and gives the new base for what dispatch changed.",
+        "parameters": [{
+          "name": "body", "in": "body", "required": true,
+          "schema": {
+            "type": "object", "required": ["incoming"],
+            "properties": {
+              "incoming": { "$ref": "#/definitions/Assignment" },
+              "stored": { "$ref": "#/definitions/Assignment" },
+              "base": { "type": "object", "description": "The stored base, if any." }
+            }
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "The verdict",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "newer": { "type": "boolean" },
+                "samePrint": { "type": "boolean" },
+                "sameContent": { "type": "boolean" },
+                "base": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/serve-run": {
+      "post": {
+        "operationId": "ServeRun",
+        "summary": "The run as the driver sees it",
+        "description": "Dispatch's copy with the driver's change log applied, learned airlines filled in, every row given its address, contested and agreed values marked, orphans listed, and what dispatch changed since the base.",
+        "parameters": [{
+          "name": "body", "in": "body", "required": true,
+          "schema": {
+            "type": "object", "required": ["sheet", "changes"],
+            "properties": {
+              "sheet": { "$ref": "#/definitions/Assignment" },
+              "changes": { "type": "array", "items": { "$ref": "#/definitions/Change" }, "description": "The log, oldest first." },
+              "base": { "type": "object" },
+              "okPrinted": { "type": "string" },
+              "airlines": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "code": { "type": "string" } } } }
+            }
+          }
+        }],
+        "responses": { "200": { "description": "The served run", "schema": { "$ref": "#/definitions/ServedRun" } } }
+      }
+    },
+    "/aim-change": {
+      "post": {
+        "operationId": "AimChange",
+        "summary": "Turn a driver's change into a stored change",
+        "description": "Finds the row the change is for, by content and never by a guess, records what the sheet said, and refuses a field that cannot be changed or a change made on an older copy.",
+        "parameters": [{
+          "name": "body", "in": "body", "required": true,
+          "schema": {
+            "type": "object", "required": ["sheet", "request"],
+            "properties": {
+              "sheet": { "$ref": "#/definitions/Assignment" },
+              "changes": { "type": "array", "items": { "$ref": "#/definitions/Change" } },
+              "basis": { "type": "string", "description": "Which copy the driver was looking at (its importedAt)." },
+              "request": {
+                "type": "object",
+                "properties": {
+                  "kind": { "type": "string", "enum": ["field", "remove", "addEntity", "addStep", "addLeg"] },
+                  "at": { "type": "string", "description": "The row's address, as ServeRun gave it (2.0.1, or +ref)." },
+                  "field": { "type": "string", "enum": ["flightNumber", "phone", "note", "where", "eta", "etd", "time", "line"] },
+                  "value": { "type": "string" },
+                  "entity": { "type": "object" },
+                  "step": { "type": "object" },
+                  "leg": { "type": "object" },
+                  "ref": { "type": "string", "description": "The client's own id for this change." }
+                }
+              }
+            }
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "The change to store, or why not",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "change": { "$ref": "#/definitions/Change" },
+                "duplicate": { "type": "boolean" },
+                "error": { "type": "string" },
+                "status": { "type": "integer", "description": "400 refused, 409 made on an older copy, 413 over a limit." }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clocks": {
+      "post": {
+        "operationId": "Clocks",
+        "summary": "Parked by and Leaving at, for every airport stop of a run",
+        "parameters": [{
+          "name": "body", "in": "body", "required": true,
+          "schema": {
+            "type": "object", "required": ["run", "statuses"],
+            "properties": {
+              "run": { "$ref": "#/definitions/ServedRun" },
+              "statuses": { "type": "object", "description": "FlightStatus by flight id (UA1503:2026-08-31)." }
+            }
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "One entry per airport stop",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "at": { "type": "string" },
+                  "code": { "type": "string" },
+                  "parkedBy": { "type": "string", "format": "date-time" },
+                  "leavingAt": { "type": "string", "format": "date-time" },
+                  "first": { "type": "string", "description": "The flight setting Parked by." },
+                  "last": { "type": "string", "description": "The flight setting Leaving at." },
+                  "plannedEta": { "type": "string" },
+                  "plannedEtd": { "type": "string" },
+                  "legMinutes": { "type": "integer" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notices": {
+      "post": {
+        "operationId": "Notices",
+        "summary": "The alerts a flight's change means",
+        "parameters": [{
+          "name": "body", "in": "body", "required": true,
+          "schema": {
+            "type": "object", "required": ["runs", "flight", "next", "now"],
+            "properties": {
+              "runs": { "type": "array", "items": { "$ref": "#/definitions/ServedRun" } },
+              "flight": { "type": "object", "properties": { "flightNumber": { "type": "string" }, "date": { "type": "string" } } },
+              "prev": { "type": "object", "description": "The previous status; none on a first check (compared with the timetable)." },
+              "next": { "type": "object" },
+              "others": { "type": "object", "description": "The other flights' statuses at the same stops." },
+              "told": { "type": "object", "description": "The status the last alert was computed from." },
+              "now": { "type": "string", "format": "date-time" }
+            }
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "Zero or more alerts",
+            "schema": { "type": "array", "items": { "$ref": "#/definitions/Notice" } }
+          }
+        }
+      }
+    },
+    "/plan-check": {
+      "post": {
+        "operationId": "PlanCheck",
+        "summary": "When to look a flight up next",
+        "parameters": [{
+          "name": "body", "in": "body", "required": true,
+          "schema": {
+            "type": "object", "required": ["now"],
+            "properties": {
+              "run": { "$ref": "#/definitions/Assignment" },
+              "role": { "type": "string", "enum": ["a", "d"] },
+              "sheetTime": { "type": "string", "format": "date-time" },
+              "status": { "type": "object" },
+              "done": { "type": "array", "items": { "type": "string", "enum": ["first", "a3h", "a45", "a15", "d3h"] } },
+              "miss": { "type": "integer" },
+              "now": { "type": "string", "format": "date-time" }
+            }
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "The next check per flight, or done",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "flight": { "type": "string" },
+                  "done": { "type": "boolean" },
+                  "at": { "type": "string", "format": "date-time" },
+                  "rung": { "type": "string" },
+                  "skipped": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/budget": {
+      "post": {
+        "operationId": "Budget",
+        "summary": "Which due checks the month's lookups allow",
+        "parameters": [{
+          "name": "body", "in": "body", "required": true,
+          "schema": {
+            "type": "object", "required": ["now"],
+            "properties": {
+              "stored": { "type": "object", "description": "period, spent, remaining, resetAt" },
+              "due": { "type": "array", "items": { "type": "string" }, "description": "The rungs due, in order." },
+              "now": { "type": "string", "format": "date-time" }
+            }
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "Allowed checks and what to tell drivers",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "allow": { "type": "array", "items": { "type": "boolean" } },
+                "state": { "type": "string", "enum": ["ok", "low", "paused"] },
+                "left": { "type": "integer" },
+                "renews": { "type": "string" },
+                "until": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Assignment": {
+      "type": "object",
+      "description": "A run as read from the sheet: assignment.schema.json.",
+      "properties": {
+        "number": { "type": "string" },
+        "start": { "type": "string" },
+        "end": { "type": "string" },
+        "printedAt": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "ReadResult": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "assignment": { "$ref": "#/definitions/Assignment" },
+        "reason": { "type": "string", "enum": ["not-pdf", "unsupported", "picture", "not-a-sheet", "unreadable", "too-big"] },
+        "detail": { "type": "string" }
+      }
+    },
+    "Change": {
+      "type": "object",
+      "description": "One entry of the driver's change log (patch.ts Patch).",
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string" },
+        "target": { "type": "object" },
+        "field": { "type": "string" },
+        "value": { "type": "string" },
+        "was": { "type": "string" },
+        "entity": { "type": "object" },
+        "step": { "type": "object" },
+        "leg": { "type": "object" },
+        "label": { "type": "string" },
+        "at": { "type": "string" },
+        "by": { "type": "string" },
+        "ref": { "type": "string" }
+      }
+    },
+    "ServedRun": {
+      "type": "object",
+      "description": "The run as shown: the Assignment with _at addresses, _edit marks (dispatch's value beside the driver's), _add and _removed rows, plus edits, orphanedEdits, changes and sheetChanges.",
+      "properties": {
+        "number": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "object" } },
+        "edits": { "type": "array", "items": { "type": "object" } },
+        "orphanedEdits": { "type": "array", "items": { "type": "object" } },
+        "sheetChanges": { "type": "object" }
+      }
+    },
+    "Notice": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string", "description": "Lines separated by new lines; the last says where and which flight." },
+        "priority": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "run": { "type": "string" }
+      }
+    }
+  }
+}

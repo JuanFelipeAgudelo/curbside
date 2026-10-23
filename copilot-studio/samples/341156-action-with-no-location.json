@@ -1,0 +1,135 @@
+{
+ "number": "341156",
+ "start": "2026-05-08 10:15",
+ "end": "2026-05-08 14:00",
+ "driver": "Jonas, Ana",
+ "vehicle": "Branch (72560) 2023 Toyota Sienna (8",
+ "parking": "WRK-RPG-BSMNT-065",
+ "originCode": "WRK",
+ "driverNotes": "Pablo thank you for training Elijah on his first live EWR pickup.\nEWR pick up and take to Enterprise, 180 Route 17 South, Mahwah, NJ 07430.",
+ "assistants": [
+  {
+   "name": "Ashford, Kian Elijah",
+   "role": null,
+   "note": null
+  }
+ ],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": null,
+   "etd": "10:15 AM",
+   "date": "2026-05-08",
+   "etaDate": "2026-05-08",
+   "actions": []
+  },
+  {
+   "code": "EWR",
+   "place": "EWR Newark",
+   "address": "Rt. 1 & 9 Newark , NJ 7114",
+   "eta": "11:30 AM",
+   "etd": "12:30 PM",
+   "date": "2026-05-08",
+   "etaDate": "2026-05-08",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "Baggage Claim",
+     "entities": [
+      {
+       "name": "Cole, Rosa",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Enterprise Rent A",
+       "phone": "+1 555-0100-000",
+       "bags": 1,
+       "flightNumber": "UA1227",
+       "scheduledText": "11:47 AM MCO Orlando",
+       "flightDate": "2026-05-08"
+      },
+      {
+       "name": "Cole, Ivan",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Enterprise Rent A",
+       "phone": null,
+       "bags": 1,
+       "flightNumber": "UA1227",
+       "scheduledText": "11:47 AM MCO Orlando",
+       "flightDate": "2026-05-08"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": null,
+   "place": "Enterprise Rent A Car",
+   "address": "180 Route 17 South, Mahwah, NJ 07430",
+   "eta": "1:30 PM",
+   "etd": "1:45 PM",
+   "date": "2026-05-08",
+   "etaDate": "2026-05-08",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": null,
+     "entities": [
+      {
+       "name": "Cole, Ivan",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Enterprise Rent A",
+       "phone": null,
+       "bags": 1,
+       "flightNumber": "UA1227",
+       "scheduledText": "11:47 AM MCO Orlando",
+       "flightDate": "2026-05-08"
+      }
+     ]
+    },
+    {
+     "verb": "Drop-Off",
+     "where": "Warwick Main Lobby",
+     "entities": [
+      {
+       "name": "Cole, Rosa",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Enterprise Rent A",
+       "phone": "+1 555-0100-000",
+       "bags": 1,
+       "flightNumber": "UA1227",
+       "scheduledText": "11:47 AM MCO Orlando",
+       "flightDate": "2026-05-08"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "2:00 PM",
+   "etd": null,
+   "date": "2026-05-08",
+   "etaDate": "2026-05-08",
+   "actions": []
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-05-07 16:47",
+ "source": "341156-action-with-no-location.pdf"
+}

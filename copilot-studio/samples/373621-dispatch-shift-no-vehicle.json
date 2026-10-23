@@ -1,0 +1,33 @@
+{
+ "number": "373621",
+ "start": "2026-09-16 13:00",
+ "end": "2026-09-16 17:00",
+ "driver": "Reyes, Mara",
+ "vehicle": "(1 Seats)",
+ "parking": null,
+ "originCode": null,
+ "driverNotes": "**Dispatch Training **",
+ "assistants": [
+  {
+   "name": "Brennan, Tess",
+   "role": "Trainer",
+   "note": null
+  }
+ ],
+ "steps": [
+  {
+   "code": null,
+   "place": "Dispatch",
+   "address": null,
+   "eta": "1:00 PM",
+   "etd": "5:00 PM",
+   "date": "2026-09-16",
+   "etaDate": "2026-09-16",
+   "actions": []
+  }
+ ],
+ "gb": false,
+ "issues": [],
+ "printedAt": "2026-09-15 16:49",
+ "source": "373621-dispatch-shift-no-vehicle.pdf"
+}

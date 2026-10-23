@@ -1,0 +1,170 @@
+{
+ "number": "350568",
+ "start": "2026-06-12 06:45",
+ "end": "2026-06-12 09:15",
+ "driver": "Reyes, Mara",
+ "vehicle": "Branch (72522) 2023 Toyota Sienna (8",
+ "parking": "WRK-RPG-BSMNT-103",
+ "originCode": "WRK",
+ "driverNotes": "EWR Drop off. Cole, Anna-lee and Jo-ann are riding along as assistants to Diaz, Rosa Maria. They will be riding back\nto Warwick with you.",
+ "assistants": [],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": null,
+   "etd": "6:45 AM",
+   "date": "2026-06-12",
+   "etaDate": "2026-06-12",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "B-res WRK",
+     "entities": [
+      {
+       "name": "Diaz, Tess",
+       "pax": 1,
+       "tag": "HO",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "EWR Newark",
+       "phone": null,
+       "unsupported": "embassy/consulate"
+      },
+      {
+       "name": "Vargas, Gil & Vera",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "EWR Newark",
+       "phone": "+1 555-0100-000",
+       "bags": 3,
+       "flightNumber": "UA2455",
+       "scheduledText": "10:00 AM Denver",
+       "flightDate": "2026-06-12"
+      },
+      {
+       "name": "Jonas, Sam",
+       "pax": 1,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "EWR Newark",
+       "phone": "+00 00-0000-0000",
+       "bags": 1,
+       "flightNumber": "AC8877",
+       "scheduledText": "11:00 AM Toronto, CAN",
+       "flightDate": "2026-06-12"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "EWR",
+   "place": "EWR Newark",
+   "address": "Rt. 1 & 9 Newark , NJ 7114",
+   "eta": "8:00 AM",
+   "etd": "8:00 AM",
+   "date": "2026-06-12",
+   "etaDate": "2026-06-12",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "Departure Terminal",
+     "entities": [
+      {
+       "name": "Diaz, Tess",
+       "pax": 1,
+       "tag": "HO",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "EWR Newark",
+       "phone": null,
+       "unsupported": "embassy/consulate"
+      },
+      {
+       "name": "Vargas, Gil & Vera",
+       "pax": 2,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "EWR Newark",
+       "phone": "+1 555-0100-000",
+       "bags": 3,
+       "flightNumber": "UA2455",
+       "scheduledText": "10:00 AM Denver",
+       "flightDate": "2026-06-12"
+      },
+      {
+       "name": "Jonas, Sam",
+       "pax": 1,
+       "tag": "D",
+       "gb": false,
+       "origin": "Warwick",
+       "destination": "EWR Newark",
+       "phone": "+00 00-0000-0000",
+       "bags": 1,
+       "flightNumber": "AC8877",
+       "scheduledText": "11:00 AM Toronto, CAN",
+       "flightDate": "2026-06-12"
+      }
+     ]
+    },
+    {
+     "verb": "Pickup",
+     "where": "Departure Terminal",
+     "entities": [
+      {
+       "name": "Diaz, Tess",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Warwick",
+       "phone": null,
+       "flightNumber": null,
+       "scheduledText": "8:00 AM Warwick"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "9:15 AM",
+   "etd": null,
+   "date": "2026-06-12",
+   "etaDate": "2026-06-12",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "B-res WRK",
+     "entities": [
+      {
+       "name": "Diaz, Tess",
+       "pax": 1,
+       "tag": "A",
+       "gb": false,
+       "origin": "EWR Newark",
+       "destination": "Warwick",
+       "phone": null,
+       "flightNumber": null,
+       "scheduledText": "8:00 AM Warwick"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "gb": false,
+ "issues": [
+  "HO row not yet supported: Diaz, Tess"
+ ],
+ "printedAt": "2026-06-11 19:00",
+ "source": "350568-excluded-ho-and-non-flight.pdf"
+}

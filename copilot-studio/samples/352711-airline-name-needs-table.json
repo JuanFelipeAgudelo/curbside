@@ -1,0 +1,125 @@
+{
+ "number": "352711",
+ "start": "2026-06-23 15:30",
+ "end": "2026-06-23 21:30",
+ "driver": "Jonas, Nils",
+ "vehicle": "Branch (72614) 2023 Mercedes Benz",
+ "parking": "WRK-RPG-BSMNT-071",
+ "originCode": "WRK",
+ "driverNotes": "**Bring hospitality bag** Kian will be riding along for training.",
+ "assistants": [
+  {
+   "name": "Vargas, Mara",
+   "role": "Helper",
+   "note": "Training"
+  }
+ ],
+ "steps": [
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": null,
+   "etd": "3:30 PM",
+   "date": "2026-06-23",
+   "etaDate": "2026-06-23",
+   "actions": []
+  },
+  {
+   "code": "JFK",
+   "place": "JFK Kennedy",
+   "address": "JFK Expressway Jamaica, NY 11430",
+   "eta": "5:30 PM",
+   "etd": "7:45 PM",
+   "date": "2026-06-23",
+   "etaDate": "2026-06-23",
+   "actions": [
+    {
+     "verb": "Pickup",
+     "where": "Customs Exit",
+     "entities": [
+      {
+       "name": "Vargas, Ben & Sam",
+       "pax": 2,
+       "tag": "GBA",
+       "gb": true,
+       "origin": "JFK Kennedy",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 2,
+       "flightNumber": "TK1",
+       "scheduledText": "5:55 PM Istanbul - IST",
+       "flightDate": "2026-06-23"
+      },
+      {
+       "name": "Grant, Omar",
+       "pax": 1,
+       "tag": "GBA",
+       "gb": true,
+       "origin": "JFK Kennedy",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 1,
+       "flightNumber": "TK1",
+       "scheduledText": "5:55 PM Istanbul - IST",
+       "flightDate": "2026-06-23"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "WRK",
+   "place": "Warwick",
+   "address": "1 Kings Drive",
+   "eta": "9:30 PM",
+   "etd": null,
+   "date": "2026-06-23",
+   "etaDate": "2026-06-23",
+   "actions": [
+    {
+     "verb": "Drop-Off",
+     "where": "A-res WRK",
+     "entities": [
+      {
+       "name": "Vargas, Ben & Sam",
+       "pax": 2,
+       "tag": "GBA",
+       "gb": true,
+       "origin": "JFK Kennedy",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 2,
+       "flightNumber": "TK1",
+       "scheduledText": "5:55 PM Istanbul - IST",
+       "flightDate": "2026-06-23"
+      }
+     ]
+    },
+    {
+     "verb": "Drop-Off",
+     "where": "D-res WRK",
+     "entities": [
+      {
+       "name": "Grant, Omar",
+       "pax": 1,
+       "tag": "GBA",
+       "gb": true,
+       "origin": "JFK Kennedy",
+       "destination": "Warwick",
+       "phone": "+1 555-0100-000",
+       "bags": 1,
+       "flightNumber": "TK1",
+       "scheduledText": "5:55 PM Istanbul - IST",
+       "flightDate": "2026-06-23"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "gb": true,
+ "issues": [],
+ "printedAt": "2026-06-22 16:02",
+ "source": "352711-airline-name-needs-table.pdf"
+}
